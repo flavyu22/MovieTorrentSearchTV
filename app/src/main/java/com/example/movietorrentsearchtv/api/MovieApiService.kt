@@ -6,6 +6,10 @@ import retrofit2.http.Query
 import retrofit2.http.Url
 
 interface MovieApiService {
+    // --- UPDATE SYSTEM ---
+    @GET("https://raw.githubusercontent.com/OxigenForFlower/MovieTorrentSearchTV-master/master/update.json")
+    suspend fun checkForUpdates(): UpdateInfo
+
     // --- YTS (FILME) ---
     @GET("list_movies.json")
     suspend fun searchMovies(
@@ -56,3 +60,10 @@ interface MovieApiService {
         @Query("language") language: String = "en-US"
     ): TmdbSeriesResponse
 }
+
+data class UpdateInfo(
+    val versionCode: Int,
+    val versionName: String,
+    val apkUrl: String,
+    val releaseNotes: String
+)

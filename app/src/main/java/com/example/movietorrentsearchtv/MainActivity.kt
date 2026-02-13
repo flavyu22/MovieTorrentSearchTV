@@ -65,6 +65,7 @@ import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.example.movietorrentsearchtv.api.RetrofitClient
 import com.example.movietorrentsearchtv.model.Movie
 import com.example.movietorrentsearchtv.ui.theme.*
 import com.example.movietorrentsearchtv.viewmodel.MovieViewModel
@@ -77,7 +78,6 @@ import kotlin.math.roundToInt
 
 val SoftBlue = Color(0xFF42A5F5)
 
-// Liste statice pentru a evita recalcularea la fiecare recompozitie
 val GENRES_LIST = listOf("All", "Action", "Adventure", "Animation", "Comedy", "Crime", "Documentary", "Drama", "Family", "Fantasy", "History", "Horror", "Music", "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western")
 val YEARS_LIST = listOf("All") + (2026 downTo 1950).map { it.toString() }
 val QUALITIES_LIST = listOf("All", "2160p", "1080p", "720p")
@@ -86,7 +86,7 @@ data class AppStrings(
     val yes: String, val no: String, val exitTitle: String, val exitMessage: String,
     val genres: String, val years: String, val quality: String, val searchPlaceholder: String,
     val movies: String, val series: String, val changeLanguage: String, val update: String,
-    val checkingUpdates: String, val about: String, val aboutTitle: String, val aboutText: String,
+    val updateTitle: String, val updateMessage: String, val checkingUpdates: String, val about: String, val aboutTitle: String, val aboutText: String,
     val prev: String, val next: String, val page: String, val back: String,
     val magnetSources: String, val noSources: String, val voiceLang: String,
     val langName: String, val developer: String
@@ -97,8 +97,9 @@ val Translations = mapOf(
         yes = "Da", no = "Nu", exitTitle = "Ieșire?", exitMessage = "Vrei să închizi aplicația?",
         genres = "GENURI", years = "ANI", quality = "CALITATE", searchPlaceholder = "Caută...",
         movies = "Filme", series = "Seriale", changeLanguage = "Schimbă Limba", update = "Update",
+        updateTitle = "Update Disponibil", updateMessage = "O versiune nouă este disponibilă. Vrei să o descarci?",
         checkingUpdates = "Căutare actualizări...", about = "Despre", aboutTitle = "Despre Aplicație",
-        aboutText = "MovieTorrentSearchTV v1.5\nCăutare Filme și Seriale.\nOptimizat special pentru Android TV.",
+        aboutText = "MovieTorrentSearchTV v1.6\nCăutare Filme și Seriale.\nOptimizat special pentru Android TV.",
         prev = "Prev.", next = "Urm.", page = "Pagina", back = "Înapoi",
         magnetSources = "Surse Magnet:", noSources = "Nicio sursă găsită.", voiceLang = "ro-RO",
         langName = "Română", developer = "Dezvoltator: OxigenForFlower"
@@ -107,61 +108,12 @@ val Translations = mapOf(
         yes = "Yes", no = "No", exitTitle = "Exit?", exitMessage = "Do you want to close the app?",
         genres = "GENRES", years = "YEARS", quality = "QUALITY", searchPlaceholder = "Search...",
         movies = "Movies", series = "Series", changeLanguage = "Change Language", update = "Update",
+        updateTitle = "Update Available", updateMessage = "A new version is available. Do you want to download it?",
         checkingUpdates = "Checking for updates...", about = "About", aboutTitle = "About App",
-        aboutText = "MovieTorrentSearchTV v1.5\nSearch Movies and Series.\nOptimized for Android TV.",
+        aboutText = "MovieTorrentSearchTV v1.6\nSearch Movies and Series.\nOptimized for Android TV.",
         prev = "Prev.", next = "Next", page = "Page", back = "Back",
         magnetSources = "Magnet Sources:", noSources = "No sources found.", voiceLang = "en-US",
         langName = "English", developer = "Developer: OxigenForFlower"
-    ),
-    "RU" to AppStrings(
-        yes = "Да", no = "Нет", exitTitle = "Выход?", exitMessage = "Вы хотите закрыть приложение?",
-        genres = "ЖАНРЫ", years = "ГОДЫ", quality = "КАЧЕСТВО", searchPlaceholder = "Поиск...",
-        movies = "Фильмы", series = "Сериалы", changeLanguage = "Сменить язык", update = "Обновить",
-        checkingUpdates = "Проверка обновлений...", about = "О приложении", aboutTitle = "О приложении",
-        aboutText = "MovieTorrentSearchTV v1.5\nПоиск фильмов и сериалов.\nОптимизировано для Android TV.",
-        prev = "Пред.", next = "След.", page = "Страница", back = "Назад",
-        magnetSources = "Магнит-ссылки:", noSources = "Источники не найдены.", voiceLang = "ru-RU",
-        langName = "Русский", developer = "Разработчик: OxigenForFlower"
-    ),
-    "ES" to AppStrings(
-        yes = "Sí", no = "No", exitTitle = "¿Salir?", exitMessage = "¿Quieres cerrar la application?",
-        genres = "GÉNEROS", years = "AÑOS", quality = "CALIDAD", searchPlaceholder = "Buscar...",
-        movies = "Películas", series = "Series", changeLanguage = "Cambiar Idioma", update = "Actualizar",
-        checkingUpdates = "Buscando actualizaciones...", about = "Acerca de", aboutTitle = "Acerca de la Application",
-        aboutText = "MovieTorrentSearchTV v1.5\nBúsqueda de Películas y Series.\nOptimizado para Android TV.",
-        prev = "Ant.", next = "Sig.", page = "Página", back = "Volver",
-        magnetSources = "Fuentes Magnet:", noSources = "No se encontraron fuentes.", voiceLang = "es-ES",
-        langName = "Español", developer = "Desarrollador: OxigenForFlower"
-    ),
-    "FR" to AppStrings(
-        yes = "Oui", no = "Non", exitTitle = "Quitter ?", exitMessage = "Voulez-vous fermer l'application ?",
-        genres = "GENRES", years = "ANNÉES", quality = "QUALITÉ", searchPlaceholder = "Rechercher...",
-        movies = "Films", series = "Séries", changeLanguage = "Changer de Langue", update = "Mettre à jour",
-        checkingUpdates = "Recherche de mises à jour...", about = "À propos", aboutTitle = "À propos de l'application",
-        aboutText = "MovieTorrentSearchTV v1.5\nRecherche de films et de series.\nOptimisé pentru Android TV.",
-        prev = "Préc.", next = "Suiv.", page = "Page", back = "Retour",
-        magnetSources = "Sources Magnet :", noSources = "Aucune source trouvée.", voiceLang = "fr-FR",
-        langName = "Français", developer = "Développeur : OxigenForFlower"
-    ),
-    "DE" to AppStrings(
-        yes = "Ja", no = "Nein", exitTitle = "Beenden?", exitMessage = "Möchten Sie die App schließen?",
-        genres = "GENRES", years = "JAHRE", quality = "QUALITÄT", searchPlaceholder = "Suchen...",
-        movies = "Filme", series = "Serien", changeLanguage = "Sprache ändern", update = "Update",
-        checkingUpdates = "Suche nach Updates...", about = "Über", aboutTitle = "Über die App",
-        aboutText = "MovieTorrentSearchTV v1.5\nSuche nach Filmen und Serien.\nOptimiert für Android TV.",
-        prev = "Zurück", next = "Weiter", page = "Seite", back = "Zurück",
-        magnetSources = "Magnet-Quellen:", noSources = "Keine Quellen gefunden.", voiceLang = "de-DE",
-        langName = "Deutsch", developer = "Entwickler: OxigenForFlower"
-    ),
-    "IT" to AppStrings(
-        yes = "Sì", no = "No", exitTitle = "Esci?", exitMessage = "Vuoi chiudere l'applicazione?",
-        genres = "GENERI", years = "ANNI", quality = "QUALITÀ", searchPlaceholder = "Cerca...",
-        movies = "Film", series = "Serie TV", changeLanguage = "Cambia Lingua", update = "Aggiorna",
-        checkingUpdates = "Ricerca aggiornamenti...", about = "Info", aboutTitle = "Info sull'app",
-        aboutText = "MovieTorrentSearchTV v1.5\nRicerca Film e Serie TV.\nOttimizzato pentru Android TV.",
-        prev = "Prec.", next = "Succ.", page = "Pagina", back = "Indietro",
-        magnetSources = "Fonti Magnet:", noSources = "Nessuna fonte trovata.", voiceLang = "it-IT",
-        langName = "Italiano", developer = "Sviluppatore: OxigenForFlower"
     )
 )
 
@@ -172,16 +124,36 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalFoundationApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
         setContent {
             var currentLanguageCode by remember { mutableStateOf("EN") }
             val s = remember(currentLanguageCode) { Translations[currentLanguageCode] ?: Translations["EN"]!! }
+            var updateUrl by remember { mutableStateOf<String?>(null) }
 
-            MovieTorrentSearchTVTheme(dynamicColor = false) { // Dezactivam dynamic color pentru viteza
+            LaunchedEffect(Unit) {
+                try {
+                    val updateInfo = RetrofitClient.getInstance(applicationContext).checkForUpdates()
+                    val currentVersionCode = packageManager.getPackageInfo(packageName, 0).versionCode
+                    if (updateInfo.versionCode > currentVersionCode) {
+                        updateUrl = updateInfo.apkUrl
+                    }
+                } catch (e: Exception) {
+                }
+            }
+
+            MovieTorrentSearchTVTheme(dynamicColor = false) {
                 CompositionLocalProvider(LocalOverscrollConfiguration provides null) {
                     Surface(modifier = Modifier.fillMaxSize(), color = AlmostBlack) {
                         val navController = rememberNavController()
                         val viewModel: MovieViewModel = viewModel()
                         var showExitDialog by remember { mutableStateOf(false) }
+
+                        if (updateUrl != null) {
+                            UpdateDialog(s, onConfirm = {
+                                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl)))
+                                updateUrl = null
+                            }, onDismiss = { updateUrl = null })
+                        }
 
                         BackHandler {
                             if (navController.previousBackStackEntry == null) showExitDialog = true else navController.popBackStack()
@@ -220,6 +192,18 @@ class MainActivity : ComponentActivity() {
     override fun onStart() { super.onStart(); playbackTimerJob?.cancel(); isWaitingForPlayback = false }
     override fun onStop() { super.onStop(); if (isWaitingForPlayback) { playbackTimerJob = lifecycleScope.launch { delay(60000); closeAppCompletely() } } }
     private fun closeAppCompletely() { finishAndRemoveTask(); android.os.Process.killProcess(android.os.Process.myPid()) }
+}
+
+@Composable
+fun UpdateDialog(s: AppStrings, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = { NetflixDialogButton(s.yes, onClick = onConfirm) },
+        dismissButton = { NetflixDialogButton(s.no, onClick = onDismiss) },
+        title = { Text(s.updateTitle, color = Color.White) },
+        text = { Text(s.updateMessage, color = Grey) },
+        containerColor = Color(0xFF1E1E1E)
+    )
 }
 
 @Composable
@@ -276,7 +260,7 @@ fun MovieSearchApp(viewModel: MovieViewModel, langCode: String, onLanguageChange
 
     LaunchedEffect(Unit) {
         if (viewModel.movies.value.isEmpty()) { viewModel.loadPopularMovies() }
-        delay(10) // Redus delay-ul pentru focalizare mai rapida
+        delay(10)
         menuFocusRequester.requestFocus()
     }
 
@@ -318,11 +302,10 @@ fun NetflixMovieItem(movie: Movie, onMovieClick: (Movie) -> Unit) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
     
-    // Optimizarea ImageRequest: pre-calculat si salvat in memorie
     val imageRequest = remember(movie.id) {
         ImageRequest.Builder(context)
             .data(movie.mediumPosterPath ?: movie.posterPath)
-            .size(200, 300) // Dimensiune mica fixata pentru RAM mic pe TV
+            .size(200, 300)
             .crossfade(true)
             .diskCachePolicy(CachePolicy.ENABLED)
             .memoryCachePolicy(CachePolicy.ENABLED)
@@ -409,7 +392,6 @@ fun HeaderRow(viewModel: MovieViewModel, s: AppStrings, langCode: String, onLang
         }
         Spacer(Modifier.width(16.dp))
         
-        // GENRES
         Box {
             NetflixHeaderButton(s.genres, viewModel.selectedGenre.value != "All") { showGenreMenu = true }
             DropdownMenu(expanded = showGenreMenu, onDismissRequest = { showGenreMenu = false }, modifier = Modifier.heightIn(max = 400.dp).background(Color(0xFF1E1E1E))) {
@@ -420,7 +402,6 @@ fun HeaderRow(viewModel: MovieViewModel, s: AppStrings, langCode: String, onLang
         }
         Spacer(Modifier.width(8.dp))
         
-        // YEARS
         Box {
             NetflixHeaderButton(s.years, viewModel.selectedYear.value != "All") { showYearMenu = true }
             DropdownMenu(expanded = showYearMenu, onDismissRequest = { showYearMenu = false }, modifier = Modifier.heightIn(max = 400.dp).background(Color(0xFF1E1E1E))) {
@@ -431,7 +412,6 @@ fun HeaderRow(viewModel: MovieViewModel, s: AppStrings, langCode: String, onLang
         }
         Spacer(Modifier.width(8.dp))
 
-        // QUALITY
         Box {
             NetflixHeaderButton(s.quality, viewModel.selectedQuality.value != "All") { showQualityMenu = true }
             DropdownMenu(expanded = showQualityMenu, onDismissRequest = { showQualityMenu = false }, modifier = Modifier.background(Color(0xFF1E1E1E))) {
@@ -517,7 +497,6 @@ fun MovieDetailsScreen(movie: Movie, langCode: String, onBack: () -> Unit, onTri
     LaunchedEffect(torrents) { if (!torrents.isNullOrEmpty()) { delay(100); firstFocus.requestFocus() } }
 
     Column(modifier = Modifier.fillMaxSize().background(AlmostBlack)) {
-        // Antet fix pentru detalii (pentru ca butonul Back sa nu se miste)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -527,7 +506,6 @@ fun MovieDetailsScreen(movie: Movie, langCode: String, onBack: () -> Unit, onTri
             NetflixHeaderButton(s.back, false, Icons.AutoMirrored.Filled.ArrowBack, onBack)
         }
 
-        // Continut derulabil
         Row(
             modifier = Modifier
                 .fillMaxSize()

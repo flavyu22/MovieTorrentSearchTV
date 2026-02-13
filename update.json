@@ -1,0 +1,6 @@
+{
+  "versionCode": 3,
+  "versionName": "1.6",
+  "apkUrl": "https://github.com/OxigenForFlower/MovieTorrentSearchTV-master/releases/download/v1.6/app-release.apk",
+  "releaseNotes": "- Fixed TV Series loading using TMDB Bearer Token authorization\n- Fixed Movie sorting (Year-based, Newest Productions First)\n- Improved API stability and fallbacks for empty grids\n- UI performance optimizations for low-end Android TV devices"
+}
