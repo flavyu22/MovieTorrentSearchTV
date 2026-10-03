@@ -1,0 +1,17 @@
+{
+  "active": [
+    "YTS",
+    "EZTV",
+    "TPB",
+    "Solid",
+    "TorrentsCSV"
+  ],
+  "removed": [
+    "1337x",
+    "Torrentio",
+    "EstrenosTorrent"
+  ],
+  "jvm_tests_passed": 25,
+  "captured_response_checks_passed": 6,
+  "android_build_verified": false
+}

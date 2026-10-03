@@ -1,0 +1,23 @@
+[
+  {
+    "name": "yts-feed",
+    "url": "https://yts.gg/api/v2/list_movies.json?limit=1",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "name": "yts-backup-feed",
+    "url": "https://movies-api.accel.li/api/v2/list_movies.json?limit=1",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "name": "torrentio-stream",
+    "url": "https://torrentio.strem.fun/stream/movie/tt1254207.json",
+    "error": "HTTP Error 403: Forbidden"
+  },
+  {
+    "name": "gradle-reachability",
+    "url": "https://services.gradle.org/distributions/gradle-9.7.1-bin.zip.sha256",
+    "http": 200,
+    "bytes": 64
+  }
+]

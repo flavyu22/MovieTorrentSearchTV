@@ -1,0 +1,62 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDirectDebugBuild UP-TO-DATE
+> Task :app:generateDirectDebugBuildConfig UP-TO-DATE
+> Task :app:generateDirectDebugResources UP-TO-DATE
+> Task :app:packageDirectDebugResources UP-TO-DATE
+> Task :app:processDirectDebugNavigationResources UP-TO-DATE
+> Task :app:parseDirectDebugLocalResources UP-TO-DATE
+> Task :app:generateDirectDebugRFile UP-TO-DATE
+> Task :app:compileDirectDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompileDirectDebug UP-TO-DATE
+> Task :app:compileDirectDebugJavaWithJavac UP-TO-DATE
+> Task :app:checkDirectDebugAarMetadata UP-TO-DATE
+> Task :app:mapDirectDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileDirectDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDirectDebugResources UP-TO-DATE
+> Task :app:createDirectDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDirectDebug UP-TO-DATE
+> Task :app:processDirectDebugMainManifest UP-TO-DATE
+> Task :app:processDirectDebugManifest UP-TO-DATE
+> Task :app:processDirectDebugManifestForPackage UP-TO-DATE
+> Task :app:processDirectDebugResources UP-TO-DATE
+> Task :app:bundleDirectDebugClassesToRuntimeJar UP-TO-DATE
+> Task :app:bundleDirectDebugClassesToCompileJar UP-TO-DATE
+> Task :app:preDirectDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDirectDebugUnitTest UP-TO-DATE
+> Task :app:processDirectDebugJavaRes UP-TO-DATE
+> Task :app:prePlayDebugBuild UP-TO-DATE
+> Task :app:generatePlayDebugBuildConfig UP-TO-DATE
+> Task :app:generatePlayDebugResources UP-TO-DATE
+> Task :app:packagePlayDebugResources UP-TO-DATE
+> Task :app:processPlayDebugNavigationResources UP-TO-DATE
+> Task :app:parsePlayDebugLocalResources UP-TO-DATE
+> Task :app:generatePlayDebugRFile UP-TO-DATE
+> Task :app:compilePlayDebugKotlin UP-TO-DATE
+> Task :app:javaPreCompilePlayDebug UP-TO-DATE
+> Task :app:compilePlayDebugJavaWithJavac
+> Task :app:checkPlayDebugAarMetadata UP-TO-DATE
+> Task :app:mapPlayDebugSourceSetPaths UP-TO-DATE
+> Task :app:compilePlayDebugNavigationResources UP-TO-DATE
+> Task :app:mergePlayDebugResources UP-TO-DATE
+> Task :app:createPlayDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksPlayDebug UP-TO-DATE
+> Task :app:processPlayDebugMainManifest UP-TO-DATE
+> Task :app:processPlayDebugManifest UP-TO-DATE
+> Task :app:processPlayDebugManifestForPackage UP-TO-DATE
+> Task :app:processPlayDebugResources UP-TO-DATE
+> Task :app:prePlayDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompilePlayDebugUnitTest UP-TO-DATE
+> Task :app:compileDirectDebugUnitTestKotlin
+> Task :app:processPlayDebugJavaRes UP-TO-DATE
+> Task :app:compileDirectDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDirectDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:bundlePlayDebugClassesToRuntimeJar
+> Task :app:bundlePlayDebugClassesToCompileJar
+> Task :app:testDirectDebugUnitTest
+> Task :app:compilePlayDebugUnitTestKotlin
+> Task :app:compilePlayDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processPlayDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:testPlayDebugUnitTest
+
+BUILD SUCCESSFUL in 8s
+52 actionable tasks: 7 executed, 45 up-to-date

@@ -1,0 +1,6 @@
+{
+  "url": "https://bitsearch.eu/api/v1/search?q=Big%20Buck%20Bunny&limit=20&category=2",
+  "status": 200,
+  "bytes": 1707,
+  "results": 5
+}

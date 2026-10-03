@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Google Play and all public traffic are HTTPS-only. -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    <!--
+      An on-device TorrServer listens on loopback and its traffic never leaves the device,
+      so it keeps a cleartext exception in every distribution. Runtime validation in
+      NetworkManager still rejects every non-loopback cleartext host in this flavor.
+      Device-level behavior of IP-literal domain entries must be confirmed on real TVs.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+        <domain includeSubdomains="false">::1</domain>
+    </domain-config>
+</network-security-config>

@@ -1,0 +1,16 @@
+{
+  "compile_exit": 0,
+  "junit_exit": 0,
+  "captured_parsers_exit": 0,
+  "test_classes": [
+    "io.github.flavyu22.movietorrentsearchtv.data.scraper.NewProvidersTest",
+    "io.github.flavyu22.movietorrentsearchtv.data.scraper.ProviderRecoveryTest",
+    "io.github.flavyu22.movietorrentsearchtv.data.scraper.ScraperContractFixtureTest",
+    "io.github.flavyu22.movietorrentsearchtv.data.scraper.SpanishMagnetScraperTest",
+    "io.github.flavyu22.movietorrentsearchtv.data.scraper.SolidTorrentsScraperTest",
+    "io.github.flavyu22.movietorrentsearchtv.data.scraper.ScraperUtilsTest",
+    "io.github.flavyu22.movietorrentsearchtv.data.scraper.MultiSourceScraperTest",
+    "io.github.flavyu22.movietorrentsearchtv.data.scraper.TorrentsCsvScraperTest"
+  ],
+  "limitation": "Isolated JVM compilation. Compose Immutable replaced by compile-only annotation. No Android UI/SDK build."
+}

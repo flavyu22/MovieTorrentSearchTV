@@ -1,0 +1,5 @@
+# Copy only the keys you need to ~/.gradle/gradle.properties.
+# Do not commit a populated copy.
+TMDB_API_KEY=replace_with_your_tmdb_key
+UPDATE_MANIFEST_URL=https://raw.githubusercontent.com/OWNER/REPOSITORY/main/update.json
+UPDATE_REPOSITORY=OWNER/REPOSITORY

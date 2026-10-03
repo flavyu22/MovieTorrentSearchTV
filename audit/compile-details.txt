@@ -1,0 +1,12 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDirectDebugBuild UP-TO-DATE
+> Task :app:generateDirectDebugBuildConfig UP-TO-DATE
+> Task :app:generateDirectDebugResources UP-TO-DATE
+> Task :app:packageDirectDebugResources UP-TO-DATE
+> Task :app:processDirectDebugNavigationResources UP-TO-DATE
+> Task :app:parseDirectDebugLocalResources UP-TO-DATE
+> Task :app:generateDirectDebugRFile UP-TO-DATE
+> Task :app:compileDirectDebugKotlin
+
+BUILD SUCCESSFUL in 3s
+7 actionable tasks: 1 executed, 6 up-to-date

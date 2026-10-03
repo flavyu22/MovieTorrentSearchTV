@@ -1,0 +1,17 @@
+MovieTorrentSearchTV uses third-party Android and JVM libraries distributed under their own licenses.
+Before public distribution, regenerate this report from the exact resolved release graph
+(e.g. `gradlew app:dependencies` or an OSS-review tool) and include all required notices.
+Major direct dependencies and their licenses as declared in `gradle/libs.versions.toml`:
+
+- AndroidX (core, lifecycle, activity-compose, navigation-compose, compose BOM/UI/material3,
+  datastore-preferences, splashscreen, benchmark/test): The Apache Software License 2.0.
+- Kotlin (stdlib, coroutines): The Apache Software License 2.0.
+- Retrofit, OkHttp, Okio, Gson: The Apache Software License 2.0.
+- Coil (coil, coil-compose, coil-network-okhttp): The Apache Software License 2.0.
+- compose-shimmer (com.valentinilk.shimmer): The MIT License.
+- org.json (JVM test replacement): JSON License (public-domain-like; includes the
+  "shall be used for Good, not Evil" clause — review before redistribution).
+
+The application contacts services selected by the operator, including TMDB, YTS-family mirrors,
+EZTV-family sources, The Pirate Bay API mirrors, GitHub update endpoints and a user-configured
+TorrServer. Their trademarks and data remain the property of their respective owners.

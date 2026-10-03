@@ -1,0 +1,17 @@
+Starting a Gradle Daemon, 2 stopped Daemons could not be reused, use --status for details
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDirectDebugBuild UP-TO-DATE
+> Task :app:generateDirectDebugBuildConfig
+> Task :app:generateDirectDebugResources UP-TO-DATE
+> Task :app:packageDirectDebugResources UP-TO-DATE
+> Task :app:processDirectDebugNavigationResources UP-TO-DATE
+> Task :app:parseDirectDebugLocalResources UP-TO-DATE
+> Task :app:generateDirectDebugRFile UP-TO-DATE
+
+> Task :app:compileDirectDebugKotlin
+w: file:///C:/Users/mark1/Downloads/MovieTorrentSearchTV_7_PROVIDERS_2026-09-19/MovieTorrentSearchTV-2.0.0/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/RutorScraper.kt:87:38 Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'Any?'.
+
+[Incubating] Problems report is available at: file:///C:/Users/mark1/Downloads/MovieTorrentSearchTV_7_PROVIDERS_2026-09-19/MovieTorrentSearchTV-2.0.0/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 37s
+7 actionable tasks: 2 executed, 5 up-to-date

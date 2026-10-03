@@ -1,0 +1,1 @@
+PASS: 6 captured-response checks with actual Kotlin parsers. No media downloaded.

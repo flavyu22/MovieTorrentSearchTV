@@ -1,0 +1,26 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:nyaa="https://nyaa.si/xmlns/nyaa" version="2.0">
+	<channel>
+		<title>Nyaa - &#34;Sintel&#34; - Torrent File RSS</title>
+		<description>RSS Feed for &#34;Sintel&#34;</description>
+		<link>https://nyaa.si/</link>
+		<atom:link href="https://nyaa.si/?page=rss" rel="self" type="application/rss+xml" />
+		<item>
+			<title>[Devil-fansub] Sintel 2010[BluRay][B8D00F91]</title>
+				<link>https://nyaa.si/download/567811.torrent</link>
+				<guid isPermaLink="true">https://nyaa.si/view/567811</guid>
+				<pubDate>Tue, 24 Jun 2014 15:15:00 -0000</pubDate>
+
+				<nyaa:seeders>0</nyaa:seeders>
+				<nyaa:leechers>1</nyaa:leechers>
+				<nyaa:downloads>0</nyaa:downloads>
+				<nyaa:infoHash>d8ffc008b02c79e68510afaa851838b604d7ba70</nyaa:infoHash>
+			<nyaa:categoryId>1_3</nyaa:categoryId>
+			<nyaa:category>Anime - Non-English-translated</nyaa:category>
+			<nyaa:size>523.5 MiB</nyaa:size>
+			<nyaa:comments>0</nyaa:comments>
+			<nyaa:trusted>No</nyaa:trusted>
+			<nyaa:remake>No</nyaa:remake>
+			<description><![CDATA[<a href="https://nyaa.si/view/567811">#567811 | [Devil-fansub] Sintel 2010[BluRay][B8D00F91]</a> | 523.5 MiB | Anime - Non-English-translated | d8ffc008b02c79e68510afaa851838b604d7ba70]]></description>
+		</item>
+	</channel>
+</rss>

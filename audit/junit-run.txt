@@ -1,0 +1,41 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDirectDebugBuild UP-TO-DATE
+> Task :app:generateDirectDebugBuildConfig
+> Task :app:generateDirectDebugResources
+> Task :app:packageDirectDebugResources
+> Task :app:processDirectDebugNavigationResources
+> Task :app:javaPreCompileDirectDebug
+> Task :app:mapDirectDebugSourceSetPaths
+> Task :app:compileDirectDebugNavigationResources
+> Task :app:checkDirectDebugAarMetadata
+> Task :app:parseDirectDebugLocalResources
+> Task :app:createDirectDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksDirectDebug
+> Task :app:processDirectDebugMainManifest
+> Task :app:generateDirectDebugRFile
+> Task :app:processDirectDebugManifest
+> Task :app:mergeDirectDebugResources
+> Task :app:preDirectDebugUnitTestBuild UP-TO-DATE
+> Task :app:prePlayDebugBuild UP-TO-DATE
+> Task :app:javaPreCompileDirectDebugUnitTest
+> Task :app:generatePlayDebugBuildConfig
+> Task :app:generatePlayDebugResources
+> Task :app:packagePlayDebugResources
+> Task :app:processPlayDebugNavigationResources
+> Task :app:processDirectDebugManifestForPackage
+> Task :app:javaPreCompilePlayDebug
+> Task :app:mapPlayDebugSourceSetPaths
+> Task :app:compilePlayDebugNavigationResources
+> Task :app:checkPlayDebugAarMetadata
+> Task :app:parsePlayDebugLocalResources
+> Task :app:createPlayDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksPlayDebug
+> Task :app:processPlayDebugMainManifest
+> Task :app:processPlayDebugManifest
+> Task :app:prePlayDebugUnitTestBuild UP-TO-DATE
+> Task :app:processPlayDebugManifestForPackage
+> Task :app:generatePlayDebugRFile
+> Task :app:javaPreCompilePlayDebugUnitTest
+> Task :app:processDirectDebugResources
+> Task :app:mergePlayDebugResources
+> Task :app:processPlayDebugResources

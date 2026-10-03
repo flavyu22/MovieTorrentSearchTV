@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Direct distribution only. Google Play builds never request package installation. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <application
+        android:networkSecurityConfig="@xml/network_security_config_direct"
+        android:usesCleartextTraffic="true"
+        tools:replace="android:networkSecurityConfig,android:usesCleartextTraffic" />
+</manifest>

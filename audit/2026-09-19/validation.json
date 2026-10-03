@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-19",
+  "status": "STATIC_CHECKS_PASSED_ANDROID_BUILD_BLOCKED",
+  "input_archive_sha256": "d542d4f9ece28afa47140aa2c7287bc454e81aa191b456352e3f99302e31f7e4",
+  "provider_files_unchanged": 18,
+  "xml_files_parsed": 17,
+  "python_syntax": "pass",
+  "toml_syntax": "pass",
+  "packaging_unit_tests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "android_regression_tests_added": 2,
+  "android_tests_executed": false,
+  "gradle_build": "blocked: distribution unavailable; Network is unreachable",
+  "apk_generated": false,
+  "changed_or_added_code_files": [
+    "AUDIT_2026-09-19_RO.md",
+    "app/src/androidTest/java/io/github/flavyu22/movietorrentsearchtv/RepairRegressionTest.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/MainActivity.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/config/ExternalPackages.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/playback/PreferredPlayerStore.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/playback/TorrserverPlaybackManager.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/app/MovieTorrentApp.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/components/CommonComponents.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/screens/WebViewScreen.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/update/UpdateInstaller.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/AppViewModel.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/MovieViewModel.kt",
+    "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/TorrserverViewModel.kt",
+    "scripts/package-source.py",
+    "scripts/tests/test_packaging.py"
+  ]
+}

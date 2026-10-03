@@ -1,0 +1,413 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:00000000-0000-0000-0000-000000000000",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "type": "application",
+      "name": "MovieTorrentSearchTV",
+      "version": "2.1.0"
+    },
+    "properties": [
+      {
+        "name": "inventory.scope",
+        "value": "declared version-catalog dependencies; resolved transitives require Gradle"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "group": "androidx.activity",
+      "name": "activity-compose",
+      "version": "1.13.0",
+      "purl": "pkg:maven/androidx.activity/activity-compose@1.13.0",
+      "bom-ref": "pkg:maven/androidx.activity/activity-compose@1.13.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-activity-compose"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.benchmark",
+      "name": "benchmark-macro-junit4",
+      "version": "1.4.1",
+      "purl": "pkg:maven/androidx.benchmark/benchmark-macro-junit4@1.4.1",
+      "bom-ref": "pkg:maven/androidx.benchmark/benchmark-macro-junit4@1.4.1",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-benchmark-macro-junit4"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.compose",
+      "name": "compose-bom",
+      "version": "2026.08.00",
+      "purl": "pkg:maven/androidx.compose/compose-bom@2026.08.00",
+      "bom-ref": "pkg:maven/androidx.compose/compose-bom@2026.08.00",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-compose-bom"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.core",
+      "name": "core-ktx",
+      "version": "1.19.0",
+      "purl": "pkg:maven/androidx.core/core-ktx@1.19.0",
+      "bom-ref": "pkg:maven/androidx.core/core-ktx@1.19.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-core-ktx"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.core",
+      "name": "core-splashscreen",
+      "version": "1.2.0",
+      "purl": "pkg:maven/androidx.core/core-splashscreen@1.2.0",
+      "bom-ref": "pkg:maven/androidx.core/core-splashscreen@1.2.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-core-splashscreen"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.datastore",
+      "name": "datastore-preferences",
+      "version": "1.2.1",
+      "purl": "pkg:maven/androidx.datastore/datastore-preferences@1.2.1",
+      "bom-ref": "pkg:maven/androidx.datastore/datastore-preferences@1.2.1",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-datastore-preferences"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.lifecycle",
+      "name": "lifecycle-runtime-compose",
+      "version": "2.11.0",
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-runtime-compose@2.11.0",
+      "bom-ref": "pkg:maven/androidx.lifecycle/lifecycle-runtime-compose@2.11.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-lifecycle-runtime-compose"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.lifecycle",
+      "name": "lifecycle-runtime-ktx",
+      "version": "2.11.0",
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-runtime-ktx@2.11.0",
+      "bom-ref": "pkg:maven/androidx.lifecycle/lifecycle-runtime-ktx@2.11.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-lifecycle-runtime-ktx"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.lifecycle",
+      "name": "lifecycle-viewmodel-compose",
+      "version": "2.11.0",
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-viewmodel-compose@2.11.0",
+      "bom-ref": "pkg:maven/androidx.lifecycle/lifecycle-viewmodel-compose@2.11.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-lifecycle-viewmodel-compose"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.lifecycle",
+      "name": "lifecycle-viewmodel-savedstate",
+      "version": "2.11.0",
+      "purl": "pkg:maven/androidx.lifecycle/lifecycle-viewmodel-savedstate@2.11.0",
+      "bom-ref": "pkg:maven/androidx.lifecycle/lifecycle-viewmodel-savedstate@2.11.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-lifecycle-viewmodel-savedstate"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.navigation",
+      "name": "navigation-compose",
+      "version": "2.9.8",
+      "purl": "pkg:maven/androidx.navigation/navigation-compose@2.9.8",
+      "bom-ref": "pkg:maven/androidx.navigation/navigation-compose@2.9.8",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-navigation-compose"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.test.espresso",
+      "name": "espresso-core",
+      "version": "3.7.0",
+      "purl": "pkg:maven/androidx.test.espresso/espresso-core@3.7.0",
+      "bom-ref": "pkg:maven/androidx.test.espresso/espresso-core@3.7.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-espresso-core"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.test.ext",
+      "name": "junit",
+      "version": "1.3.0",
+      "purl": "pkg:maven/androidx.test.ext/junit@1.3.0",
+      "bom-ref": "pkg:maven/androidx.test.ext/junit@1.3.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-junit"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.test.uiautomator",
+      "name": "uiautomator",
+      "version": "2.4.0",
+      "purl": "pkg:maven/androidx.test.uiautomator/uiautomator@2.4.0",
+      "bom-ref": "pkg:maven/androidx.test.uiautomator/uiautomator@2.4.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-uiautomator"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.test",
+      "name": "rules",
+      "version": "1.7.0",
+      "purl": "pkg:maven/androidx.test/rules@1.7.0",
+      "bom-ref": "pkg:maven/androidx.test/rules@1.7.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-test-rules"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "androidx.test",
+      "name": "runner",
+      "version": "1.7.0",
+      "purl": "pkg:maven/androidx.test/runner@1.7.0",
+      "bom-ref": "pkg:maven/androidx.test/runner@1.7.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "androidx-test-runner"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.squareup.okhttp3",
+      "name": "mockwebserver3",
+      "version": "5.5.0",
+      "purl": "pkg:maven/com.squareup.okhttp3/mockwebserver3@5.5.0",
+      "bom-ref": "pkg:maven/com.squareup.okhttp3/mockwebserver3@5.5.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "mockwebserver"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.squareup.okhttp3",
+      "name": "okhttp",
+      "version": "5.5.0",
+      "purl": "pkg:maven/com.squareup.okhttp3/okhttp@5.5.0",
+      "bom-ref": "pkg:maven/com.squareup.okhttp3/okhttp@5.5.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "okhttp"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.squareup.okio",
+      "name": "okio",
+      "version": "3.18.1",
+      "purl": "pkg:maven/com.squareup.okio/okio@3.18.1",
+      "bom-ref": "pkg:maven/com.squareup.okio/okio@3.18.1",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "okio"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.squareup.retrofit2",
+      "name": "converter-gson",
+      "version": "3.0.0",
+      "purl": "pkg:maven/com.squareup.retrofit2/converter-gson@3.0.0",
+      "bom-ref": "pkg:maven/com.squareup.retrofit2/converter-gson@3.0.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "retrofit-gson"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.squareup.retrofit2",
+      "name": "retrofit",
+      "version": "3.0.0",
+      "purl": "pkg:maven/com.squareup.retrofit2/retrofit@3.0.0",
+      "bom-ref": "pkg:maven/com.squareup.retrofit2/retrofit@3.0.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "retrofit"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.valentinilk.shimmer",
+      "name": "compose-shimmer",
+      "version": "1.5.0",
+      "purl": "pkg:maven/com.valentinilk.shimmer/compose-shimmer@1.5.0",
+      "bom-ref": "pkg:maven/com.valentinilk.shimmer/compose-shimmer@1.5.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "shimmer-compose"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "io.coil-kt.coil3",
+      "name": "coil-compose",
+      "version": "3.5.0",
+      "purl": "pkg:maven/io.coil-kt.coil3/coil-compose@3.5.0",
+      "bom-ref": "pkg:maven/io.coil-kt.coil3/coil-compose@3.5.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "coil-compose"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "io.coil-kt.coil3",
+      "name": "coil-network-okhttp",
+      "version": "3.5.0",
+      "purl": "pkg:maven/io.coil-kt.coil3/coil-network-okhttp@3.5.0",
+      "bom-ref": "pkg:maven/io.coil-kt.coil3/coil-network-okhttp@3.5.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "coil-network-okhttp"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "io.coil-kt.coil3",
+      "name": "coil",
+      "version": "3.5.0",
+      "purl": "pkg:maven/io.coil-kt.coil3/coil@3.5.0",
+      "bom-ref": "pkg:maven/io.coil-kt.coil3/coil@3.5.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "coil"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "junit",
+      "name": "junit",
+      "version": "4.13.2",
+      "purl": "pkg:maven/junit/junit@4.13.2",
+      "bom-ref": "pkg:maven/junit/junit@4.13.2",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "junit"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "org.jetbrains.kotlinx",
+      "name": "kotlinx-coroutines-android",
+      "version": "1.11.0",
+      "purl": "pkg:maven/org.jetbrains.kotlinx/kotlinx-coroutines-android@1.11.0",
+      "bom-ref": "pkg:maven/org.jetbrains.kotlinx/kotlinx-coroutines-android@1.11.0",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "kotlinx-coroutines-android"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "org.json",
+      "name": "json",
+      "version": "20260814",
+      "purl": "pkg:maven/org.json/json@20260814",
+      "bom-ref": "pkg:maven/org.json/json@20260814",
+      "properties": [
+        {
+          "name": "catalog.alias",
+          "value": "org-json"
+        }
+      ]
+    }
+  ]
+}

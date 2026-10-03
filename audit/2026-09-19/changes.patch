@@ -1,0 +1,621 @@
+--- a/app/src/androidTest/java/io/github/flavyu22/movietorrentsearchtv/RepairRegressionTest.kt
++++ b/app/src/androidTest/java/io/github/flavyu22/movietorrentsearchtv/RepairRegressionTest.kt
+@@ -0,0 +1,73 @@
++package io.github.flavyu22.movietorrentsearchtv
++
++import android.content.ComponentName
++import android.content.Context
++import android.content.Intent
++import androidx.lifecycle.SavedStateHandle
++import androidx.lifecycle.ViewModelStore
++import androidx.lifecycle.ViewModel
++import androidx.lifecycle.ViewModelProvider
++import androidx.test.core.app.ApplicationProvider
++import androidx.test.ext.junit.runners.AndroidJUnit4
++import androidx.test.platform.app.InstrumentationRegistry
++import io.github.flavyu22.movietorrentsearchtv.playback.PlayerSelectionReceiver
++import io.github.flavyu22.movietorrentsearchtv.playback.PreferredPlayerStore
++import io.github.flavyu22.movietorrentsearchtv.viewmodel.MovieViewModel
++import io.github.flavyu22.movietorrentsearchtv.viewmodel.TorrserverViewModel
++import org.junit.Assert.assertEquals
++import org.junit.Assert.assertNull
++import org.junit.Test
++import org.junit.runner.RunWith
++
++/** Run on a disposable emulator/test profile: exercises real Android preferences and lifecycle. */
++@RunWith(AndroidJUnit4::class)
++class RepairRegressionTest {
++    @Test fun changingAndDisablingServerUpdatesExistingPlaybackViewModel() {
++        val app = ApplicationProvider.getApplicationContext<MovieTorrentApplication>()
++        InstrumentationRegistry.getInstrumentation().runOnMainSync {
++            val settings = app.getSharedPreferences("settings", Context.MODE_PRIVATE)
++            val oldAddress = settings.getString("torrserver_address", null)
++            val oldRevision = settings.getLong("torrserver_selection_revision", 0L)
++            // Avoid discovery/network requests during this deterministic settings test.
++            settings.edit().putString("torrserver_address", "https://first.example.com").commit()
++            val store = ViewModelStore()
++            try {
++                val provider = ViewModelProvider(store, object : ViewModelProvider.Factory {
++                    @Suppress("UNCHECKED_CAST")
++                    override fun <T : ViewModel> create(modelClass: Class<T>): T = when (modelClass) {
++                        MovieViewModel::class.java -> MovieViewModel(app, SavedStateHandle()) as T
++                        TorrserverViewModel::class.java -> TorrserverViewModel(app) as T
++                        else -> error("Unexpected ViewModel")
++                    }
++                })
++                val movies = provider[MovieViewModel::class.java]
++                val servers = provider[TorrserverViewModel::class.java]
++                servers.savePrimaryAddress("https://second.example.com")
++                assertEquals(servers.config.value.primaryAddress, movies.torrserverAddress.value)
++                servers.disableTorrserver()
++                assertEquals("", movies.torrserverAddress.value)
++                assertEquals(oldRevision + 2L, settings.getLong("torrserver_selection_revision", 0L))
++            } finally {
++                store.clear()
++                settings.edit().putString("torrserver_address", oldAddress)
++                    .putLong("torrserver_selection_revision", oldRevision).commit()
++            }
++        }
++    }
++
++    @Test fun chooserCannotRememberThisApplicationAsItsOwnMagnetHandler() {
++        val app = ApplicationProvider.getApplicationContext<MovieTorrentApplication>()
++        val oldChoice = PreferredPlayerStore.get(app, PreferredPlayerStore.TYPE_MAGNET)
++        try {
++            PreferredPlayerStore.clear(app, PreferredPlayerStore.TYPE_MAGNET)
++            val callback = Intent(PreferredPlayerStore.SELECTION_CALLBACK_ACTION)
++                .putExtra(PreferredPlayerStore.EXTRA_SELECTION_TYPE, PreferredPlayerStore.TYPE_MAGNET)
++                .putExtra(Intent.EXTRA_CHOSEN_COMPONENT, ComponentName(app, MainActivity::class.java))
++            PlayerSelectionReceiver().onReceive(app, callback)
++            assertNull(PreferredPlayerStore.get(app, PreferredPlayerStore.TYPE_MAGNET))
++        } finally {
++            if (oldChoice != null) PreferredPlayerStore.save(app, oldChoice, PreferredPlayerStore.TYPE_MAGNET)
++            else PreferredPlayerStore.clear(app, PreferredPlayerStore.TYPE_MAGNET)
++        }
++    }
++}
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/MainActivity.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/MainActivity.kt
+@@ -64,7 +64,7 @@
+         splash.setKeepOnScreenCondition { !appViewModel.isReady }
+ 
+         // 4. Procesăm intent-ul DOAR o dată, în afara compoziției.
+-        handleIntent(intent)
++        if (savedInstanceState == null) handleIntent(intent)
+ 
+         // 5. Observe UI events (like auto-exit after playback).
+         // NOTE: collected in a plain lifecycleScope (NOT repeatOnLifecycle) on purpose:
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/config/ExternalPackages.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/config/ExternalPackages.kt
+@@ -4,7 +4,6 @@
+ import android.content.Context
+ import android.content.Intent
+ import android.content.pm.PackageManager
+-import android.net.Uri
+ import android.util.Log
+ 
+ object ExternalPackages {
+@@ -45,12 +44,9 @@
+      * Returneaza ComponentName-ul primului player video cunoscut
+      * care este instalat pe dispozitiv, sau null daca niciunul nu e gasit.
+      */
+-    fun findInstalledVideoPlayer(context: Context): ComponentName? {
++    fun findInstalledVideoPlayer(context: Context, videoIntent: Intent): ComponentName? {
+         val pm = context.packageManager
+ 
+-        val videoIntent = Intent(Intent.ACTION_VIEW).apply {
+-            setDataAndType(Uri.parse("https://example.com/video.mp4"), "video/*")
+-        }
+         val activities: List<android.content.pm.ResolveInfo> = try {
+             pm.queryIntentActivities(videoIntent, PackageManager.MATCH_DEFAULT_ONLY)
+         } catch (_: Exception) {
+@@ -72,14 +68,6 @@
+                     }
+                 }
+             }
+-
+-            try {
+-                pm.getPackageInfo(player.packageName, 0)
+-                Log.d("ExternalPackages", "Auto-detected package: ${player.name}")
+-                return ComponentName(player.packageName, "")
+-            } catch (_: PackageManager.NameNotFoundException) {
+-                // Not installed, try next
+-            }
+         }
+         return null
+     }
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/playback/PreferredPlayerStore.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/playback/PreferredPlayerStore.kt
+@@ -62,7 +62,9 @@
+             ComponentName::class.java,
+         )
+ 
+-        if (selectedComponent != null) {
++        if (selectedComponent != null && selectedComponent.packageName != context.packageName &&
++            type in setOf(PreferredPlayerStore.TYPE_VIDEO, PreferredPlayerStore.TYPE_MAGNET)
++        ) {
+             PreferredPlayerStore.save(context, selectedComponent, type)
+         }
+     }
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/playback/TorrserverPlaybackManager.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/playback/TorrserverPlaybackManager.kt
+@@ -330,7 +330,6 @@
+         val intent = Intent(Intent.ACTION_VIEW).apply {
+             setDataAndType(Uri.parse(streamUrl), "video/*")
+             addCategory(Intent.CATEGORY_DEFAULT)
+-            addCategory(Intent.CATEGORY_BROWSABLE)
+             putExtra("title", title)
+             putExtra("name", title)
+             putExtra("from_start", true)
+@@ -358,7 +357,6 @@
+                 else {
+                     setDataAndType(uri, "video/*")
+                     addCategory(Intent.CATEGORY_DEFAULT)
+-                    addCategory(Intent.CATEGORY_BROWSABLE)
+                     putExtra("from_start", true)
+                 }
+                 putExtra("title", title)
+@@ -390,10 +388,9 @@
+         if (launchPreferredApp(context, intent, PreferredPlayerStore.TYPE_VIDEO)) return
+ 
+         // 2. Auto-detectează un player instalat cunoscut
+-        ExternalPackages.findInstalledVideoPlayer(context)?.let { detected ->
++        ExternalPackages.findInstalledVideoPlayer(context, intent)?.let { detected ->
+             PreferredPlayerStore.save(context, detected, PreferredPlayerStore.TYPE_VIDEO)
+-            launchPreferredApp(context, intent, PreferredPlayerStore.TYPE_VIDEO)
+-            return
++            if (launchPreferredApp(context, intent, PreferredPlayerStore.TYPE_VIDEO)) return
+         }
+ 
+         // 3. Nicio preferință și niciun player cunoscut — arată chooser-ul
+@@ -414,18 +411,17 @@
+ 
+     private fun launchPreferredApp(context: Context, intent: Intent, type: String): Boolean {
+         val preferredComponent = PreferredPlayerStore.get(context, type) ?: return false
++        if (preferredComponent.packageName == context.packageName) {
++            PreferredPlayerStore.clear(context, type)
++            return false
++        }
+         
+         val preferredIntent = if (preferredComponent.className.isEmpty()) {
+             // Package-level preference (e.g. auto-detected TorrServe)
+-            context.packageManager.getLaunchIntentForPackage(preferredComponent.packageName)?.apply {
+-                action = intent.action
+-                data = intent.data
+-                intent.type?.let { setDataAndType(intent.data, it) }
+-                intent.extras?.let { putExtras(it) }
+-            }
++            Intent(intent).setPackage(preferredComponent.packageName)
+         } else {
+             Intent(intent).setComponent(preferredComponent)
+-        } ?: return false
++        }
+         
+         return try {
+             context.startActivity(preferredIntent)
+@@ -452,6 +448,10 @@
+                 PendingIntent.FLAG_MUTABLE,
+         )
+         return Intent.createChooser(intent, title, callback.intentSender).apply {
++            // This app accepts incoming magnets; never send its own fallback back to itself.
++            putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(
++                ComponentName(context, io.github.flavyu22.movietorrentsearchtv.MainActivity::class.java),
++            ))
+             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+         }
+     }
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/app/MovieTorrentApp.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/app/MovieTorrentApp.kt
+@@ -33,6 +33,7 @@
+ import androidx.lifecycle.compose.LocalLifecycleOwner
+ import androidx.lifecycle.compose.collectAsStateWithLifecycle
+ import androidx.lifecycle.viewmodel.compose.viewModel
++import androidx.navigation.compose.currentBackStackEntryAsState
+ import io.github.flavyu22.movietorrentsearchtv.navigation.AppNavGraph
+ import io.github.flavyu22.movietorrentsearchtv.playback.PlaybackIntentHelper
+ import io.github.flavyu22.movietorrentsearchtv.playback.PlaybackResult
+@@ -283,7 +284,10 @@
+ 
+         val updateDialogVisible = (updateDialogsAllowed && availableUpdate != null) ||
+             updateDownloadingVisible || updateErrorVisible
+-        val isAtNavigationRoot = appState.navController.previousBackStackEntry == null
++        val currentBackStackEntry by appState.navController.currentBackStackEntryAsState()
++        val isAtNavigationRoot = currentBackStackEntry == null ||
++            currentBackStackEntry?.destination?.route ==
++                io.github.flavyu22.movietorrentsearchtv.navigation.Routes.HOME
+         BackHandler(
+             enabled = !shouldShowApp ||
+                 appUiState.pendingMagnet != null ||
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/components/CommonComponents.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/components/CommonComponents.kt
+@@ -146,6 +146,12 @@
+     onItemSelected: (String) -> Unit,
+ ) {
+     val listState = rememberLazyListState()
++    val focusItem = selectedItem.takeIf { it in items } ?: items.firstOrNull()
++    LaunchedEffect(expanded, focusItem, items) {
++        if (expanded && focusItem != null) {
++            listState.scrollToItem(items.indexOf(focusItem).coerceAtLeast(0))
++        }
++    }
+ 
+     AnimatedVisibility(
+         visible = expanded,
+@@ -175,14 +181,7 @@
+                         val isSelected = item == selectedItem
+                         val itemFocusRequester = remember { FocusRequester() }
+                         val interactionSource = remember { MutableInteractionSource() }
+-                                                val isFocused by interactionSource.collectIsFocusedAsState()
+-                        // TV remote: focus the first dropdown item on open so D-pad
+-                        // left/right navigates between options immediately.
+-                        if (items.indexOf(item) == 0) {
+-                            LaunchedEffect(expanded) {
+-                                if (expanded) itemFocusRequester.requestFocus()
+-                            }
+-                        }
++                        val isFocused by interactionSource.collectIsFocusedAsState()
+ 
+                         Surface(
+                             onClick = { onItemSelected(item) },
+@@ -209,9 +208,10 @@
+                             )
+                         }
+ 
+-                        if (isSelected && expanded) {
+-                            LaunchedEffect(Unit) {
+-                                itemFocusRequester.requestFocus()
++                        if (item == focusItem && expanded) {
++                            LaunchedEffect(item, expanded) {
++                                androidx.compose.runtime.withFrameNanos { }
++                                runCatching { itemFocusRequester.requestFocus() }
+                             }
+                         }
+                     }
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/screens/WebViewScreen.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/screens/WebViewScreen.kt
+@@ -112,7 +112,6 @@
+                 moveCursor(0f, 0f)
+             }
+             .focusRequester(focusRequester)
+-            .focusable()
+             .semantics {
+                 contentDescription = strings.browserContentDescription
+             }
+@@ -165,7 +164,8 @@
+ 
+                     else -> false
+                 }
+-            },
++            }
++            .focusable(),
+     ) {
+         AndroidView(
+             factory = { browserContext ->
+@@ -308,9 +308,11 @@
+             browser?.onPause()
+         }
+     }
+-    LaunchedEffect(Unit) {
+-        androidx.compose.runtime.withFrameNanos { }
+-        runCatching { focusRequester.requestFocus() }
++    LaunchedEffect(pendingMagnet) {
++        if (pendingMagnet == null) {
++            androidx.compose.runtime.withFrameNanos { }
++            runCatching { focusRequester.requestFocus() }
++        }
+     }
+ }
+ 
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/update/UpdateInstaller.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/update/UpdateInstaller.kt
+@@ -10,6 +10,9 @@
+ import java.security.MessageDigest
+ import java.util.Locale
+ import java.util.concurrent.TimeUnit
++import kotlinx.coroutines.CancellationException
++import kotlinx.coroutines.currentCoroutineContext
++import kotlinx.coroutines.ensureActive
+ import kotlinx.coroutines.Dispatchers
+ import kotlinx.coroutines.suspendCancellableCoroutine
+ import kotlinx.coroutines.withContext
+@@ -90,6 +93,7 @@
+         val response = executeFollowingSafeRedirects(initialUrl)
+             ?: return DownloadOutcome.DownloadFailed
+         val digest = MessageDigest.getInstance("SHA-256")
++        val downloadContext = currentCoroutineContext()
+         val downloaded = try {
+             response.use { value ->
+                 if (!value.isSuccessful) return DownloadOutcome.DownloadFailed
+@@ -103,6 +107,7 @@
+                     partial.outputStream().buffered().use { output ->
+                         val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                         while (true) {
++                            downloadContext.ensureActive()
+                             val read = input.read(buffer)
+                             if (read < 0) break
+                             total += read
+@@ -114,8 +119,12 @@
+                         }
+                     }
+                 }
++                downloadContext.ensureActive()
+                 total
+             }
++        } catch (cancelled: CancellationException) {
++            partial.delete()
++            throw cancelled
+         } catch (_: IOException) {
+             partial.delete()
+             return DownloadOutcome.DownloadFailed
+@@ -183,7 +192,9 @@
+             }
+ 
+             override fun onResponse(call: Call, response: Response) {
+-                if (!continuation.isCancelled) continuation.resume(response) else response.close()
++                continuation.resume(response) { _, cancelledResponse, _ ->
++                    cancelledResponse.close()
++                }
+             }
+         })
+     }
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/AppViewModel.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/AppViewModel.kt
+@@ -286,7 +286,7 @@
+         } else {
+             viewModelScope.launch {
+                 delay(PLAYBACK_EXIT_DELAY_MS)
+-                if (playbackActive) {
++                if (playbackActive && _playbackState.value is PlaybackState.Backgrounded) {
+                     _uiEvents.emit(UiEvent.ExitApp)
+                 }
+             }
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/MovieViewModel.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/MovieViewModel.kt
+@@ -2,6 +2,7 @@
+ 
+ import android.app.Application
+ import android.content.Context
++import android.content.SharedPreferences
+ import android.util.Log
+ import android.util.LruCache
+ import androidx.lifecycle.AndroidViewModel
+@@ -172,7 +173,16 @@
+     private val _searchHistory = MutableStateFlow(loadSearchHistoryFromPrefs())
+     val searchHistory: StateFlow<List<String>> = _searchHistory.asStateFlow()
+ 
++    private val settingsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
++        if (key == null || key == TORRSERVER_ADDRESS) {
++            _torrserverAddress.value = TorrserverEndpoint.normalize(
++                settingsPrefs.getString(TORRSERVER_ADDRESS, "").orEmpty(),
++            ).orEmpty()
++        }
++    }
++
+     init {
++        settingsPrefs.registerOnSharedPreferenceChangeListener(settingsListener)
+         // Older versions stored an entire remote Movie graph in the saved-state Bundle.
+         // Drop that migration key to avoid TransactionTooLarge during process state save.
+         savedStateHandle.remove<String>(KEY_SELECTED_MOVIE)
+@@ -188,10 +198,10 @@
+                 }
+                 when {
+                     _uiState.value.isFavoritesMode -> updateState {
+-                        copy(movies = restoredFavorites, isEmptyResult = restoredFavorites.isEmpty())
++                        copy(movies = _favoriteMovies.value, isEmptyResult = _favoriteMovies.value.isEmpty())
+                     }
+                     _uiState.value.isHistoryMode -> updateState {
+-                        copy(movies = restoredHistory, isEmptyResult = restoredHistory.isEmpty())
++                        copy(movies = _movieHistory.value, isEmptyResult = _movieHistory.value.isEmpty())
+                     }
+                 }
+             }
+@@ -201,12 +211,17 @@
+ 
+     private fun tryAutoDiscoverTorrserver() {
+         if (_torrserverAddress.value.isNotBlank()) return
++        val selectionGeneration = settingsPrefs.getLong(TORRSERVER_SELECTION_REVISION, 0L)
++        // An explicitly cleared address remains disabled across cold starts.
++        if (selectionGeneration > 0L) return
+         viewModelScope.launch(Dispatchers.IO) {
+             val loopback = "http://127.0.0.1:8090"
+             val localStatus = torrserverRepository.checkServerStatus(loopback)
+             if (localStatus != null) {
+                 withContext(Dispatchers.Main.immediate) {
+-                    saveTorrserverAddress(loopback)
++                    if (selectionGeneration == settingsPrefs.getLong(TORRSERVER_SELECTION_REVISION, 0L) &&
++                        settingsPrefs.getString(TORRSERVER_ADDRESS, "").isNullOrBlank()
++                    ) saveTorrserverAddress(loopback)
+                 }
+                 return@launch
+             }
+@@ -217,7 +232,9 @@
+                 if (firstValid != null) {
+                     val address = firstValid.address ?: "http://${firstValid.ip}:${firstValid.port}"
+                     withContext(Dispatchers.Main.immediate) {
+-                        saveTorrserverAddress(address)
++                        if (selectionGeneration == settingsPrefs.getLong(TORRSERVER_SELECTION_REVISION, 0L) &&
++                            settingsPrefs.getString(TORRSERVER_ADDRESS, "").isNullOrBlank()
++                        ) saveTorrserverAddress(address)
+                     }
+                 }
+             }
+@@ -758,10 +775,11 @@
+             ?.takeIf { it.isNotBlank() && it.length <= MAX_SEARCH_HISTORY_JSON_CHARS }
+             ?: return emptyList()
+         return runCatching {
+-            val type = object : TypeToken<List<String>>() {}.type
+-            gson.fromJson<List<String>>(json, type).orEmpty()
++            val type = object : TypeToken<List<String?>>() {}.type
++            gson.fromJson<List<String?>>(json, type).orEmpty()
+         }.getOrDefault(emptyList())
+             .asSequence()
++            .filterNotNull()
+             .map { it.trim().replace(WHITESPACE_PATTERN, " ").take(MAX_SEARCH_QUERY_CHARS) }
+             .filter { it.length >= 2 }
+             .distinctBy { it.lowercase(Locale.ROOT) }
+@@ -793,12 +811,22 @@
+     fun saveTorrserverAddress(address: String) {
+         if (address.isBlank()) {
+             _torrserverAddress.value = ""
+-            settingsPrefs.edit().remove(TORRSERVER_ADDRESS).apply()
++            settingsPrefs.edit().remove(TORRSERVER_ADDRESS)
++                .putLong(TORRSERVER_SELECTION_REVISION,
++                    settingsPrefs.getLong(TORRSERVER_SELECTION_REVISION, 0L) + 1L).apply()
+             return
+         }
+         val normalized = TorrserverEndpoint.normalize(address) ?: return
+         _torrserverAddress.value = normalized
+-        settingsPrefs.edit().putString(TORRSERVER_ADDRESS, normalized).apply()
++        settingsPrefs.edit().putString(TORRSERVER_ADDRESS, normalized)
++            .putLong(TORRSERVER_SELECTION_REVISION,
++                settingsPrefs.getLong(TORRSERVER_SELECTION_REVISION, 0L) + 1L).apply()
++    }
++
++    override fun onCleared() {
++        settingsPrefs.unregisterOnSharedPreferenceChangeListener(settingsListener)
++        torrserverRepository.destroy()
++        super.onCleared()
+     }
+ 
+     private fun updateState(block: MovieUiState.() -> MovieUiState) {
+@@ -1041,9 +1069,10 @@
+     }
+ 
+     private fun sanitizeCatalogueMovie(
+-        movie: Movie,
++        movie: Movie?,
+         requirePositiveId: Boolean = false,
+     ): Movie? {
++        movie ?: return null
+         if (movie.id == 0L || (requirePositiveId && movie.id < 1L)) return null
+         val title = boundedText(movie.title, MAX_TITLE_CHARS) ?: return null
+         val tmdbId = movie.tmdbId?.takeIf { it > 0L }
+@@ -1090,7 +1119,8 @@
+         )
+     }
+ 
+-    private fun sanitizeCatalogueTorrent(torrent: Torrent): Torrent? {
++    private fun sanitizeCatalogueTorrent(torrent: Torrent?): Torrent? {
++        torrent ?: return null
+         val hash = torrent.hash
+             ?.trim()
+             ?.lowercase(Locale.ROOT)
+@@ -1235,6 +1265,7 @@
+         const val SEARCH_HISTORY_PREFS = "search_history_prefs"
+         const val SEARCH_HISTORY_JSON = "search_history_json"
+         const val TORRSERVER_ADDRESS = "torrserver_address"
++        const val TORRSERVER_SELECTION_REVISION = "torrserver_selection_revision"
+         const val CACHE_VERSION = "v7"
+         const val API_CACHE_ENTRIES = 100
+         const val PAGE_SIZE = 49
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/TorrserverViewModel.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/TorrserverViewModel.kt
+@@ -62,7 +62,9 @@
+         val saved = preferences.getString(ADDRESS_KEY, "").orEmpty()
+         val normalized = repository.normalizeAddress(saved).orEmpty()
+         if (saved.isNotBlank() && normalized.isBlank()) {
+-            preferences.edit().remove(ADDRESS_KEY).apply()
++            preferences.edit().remove(ADDRESS_KEY)
++                .putLong(SELECTION_REVISION_KEY,
++                    preferences.getLong(SELECTION_REVISION_KEY, 0L) + 1L).apply()
+         }
+         _config.value = TorrserverConfig(primaryAddress = normalized)
+         _manualAddress.value = normalized
+@@ -88,7 +90,13 @@
+             return false
+         }
+ 
+-        preferences.edit().putString(ADDRESS_KEY, normalized).apply()
++        connectionGeneration.incrementAndGet()
++        connectionJob?.cancel()
++        connectionJob = null
++        _connectionState.value = ConnectionState.Disconnected
++        preferences.edit().putString(ADDRESS_KEY, normalized)
++            .putLong(SELECTION_REVISION_KEY,
++                preferences.getLong(SELECTION_REVISION_KEY, 0L) + 1L).apply()
+         _manualAddress.value = normalized
+         _config.value = _config.value.copy(primaryAddress = normalized, lastError = null)
+         _issue.value = null
+@@ -99,7 +107,9 @@
+         connectionGeneration.incrementAndGet()
+         connectionJob?.cancel()
+         connectionJob = null
+-        preferences.edit().remove(ADDRESS_KEY).apply()
++        preferences.edit().remove(ADDRESS_KEY)
++            .putLong(SELECTION_REVISION_KEY,
++                preferences.getLong(SELECTION_REVISION_KEY, 0L) + 1L).apply()
+         _manualAddress.value = ""
+         _config.value = TorrserverConfig()
+         _connectionState.value = ConnectionState.Disconnected
+@@ -220,6 +230,7 @@
+     private companion object {
+         const val SETTINGS_PREFS = "settings"
+         const val ADDRESS_KEY = "torrserver_address"
++        const val SELECTION_REVISION_KEY = "torrserver_selection_revision"
+         const val MAX_ADDRESS_LENGTH = 512
+     }
+ }
+--- a/scripts/package-source.py
++++ b/scripts/package-source.py
+@@ -36,9 +36,10 @@
+         path.is_file()
+         and not any(part in EXCLUDED_PARTS for part in rel.parts)
+         and path.name not in EXCLUDED_NAMES
++        and (path.suffix != ".bat" or path.name == "gradlew.bat")
+         and not path.name.endswith(
+             (".jks", ".keystore", ".p12", ".pem", ".part", ".lck", ".pyc",
+-             ".log", ".pid", ".torrent", ".bat", ".html", ".out")
++             ".log", ".pid", ".torrent", ".html", ".out")
+         )
+     )
+ 
+@@ -51,7 +52,7 @@
+     output.parent.mkdir(parents=True, exist_ok=True)
+ 
+     subprocess.run(["python3", str(ROOT / "scripts/verify-project.py")], cwd=ROOT, check=True)
+-    files = sorted((p for p in ROOT.rglob("*") if included(p)), key=lambda p: p.relative_to(ROOT).as_posix())
++    files = sorted((p for p in ROOT.rglob("*") if included(p) and p.resolve() != output), key=lambda p: p.relative_to(ROOT).as_posix())
+     prefix = "MovieTorrentSearchTV-2.0.0"
+     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+         for path in files:
+--- a/scripts/tests/test_packaging.py
++++ b/scripts/tests/test_packaging.py
+@@ -0,0 +1,38 @@
++"""Regression checks for the actual source packaging filter."""
++import importlib.util
++import tempfile
++import unittest
++from pathlib import Path
++
++MODULE_PATH = Path(__file__).resolve().parents[1] / 'package-source.py'
++spec = importlib.util.spec_from_file_location('packager', MODULE_PATH)
++packager = importlib.util.module_from_spec(spec)
++spec.loader.exec_module(packager)
++
++class PackagingTest(unittest.TestCase):
++    def setUp(self):
++        self.tmp = tempfile.TemporaryDirectory()
++        self.old_root = packager.ROOT
++        packager.ROOT = Path(self.tmp.name)
++    def tearDown(self):
++        packager.ROOT = self.old_root
++        self.tmp.cleanup()
++    def included(self, name):
++        path = packager.ROOT / name
++        path.parent.mkdir(parents=True, exist_ok=True)
++        path.write_text('fixture')
++        return packager.included(path)
++    def test_both_platform_wrappers_are_preserved(self):
++        for name in ['gradlew', 'gradlew.bat', 'gradle/wrapper/gradle-wrapper.jar']:
++            with self.subTest(name=name): self.assertTrue(self.included(name))
++    def test_local_debug_scripts_are_excluded(self):
++        for name in ['tvfix.bat', 'tvrun.bat', 'nested/debug.bat']:
++            with self.subTest(name=name): self.assertFalse(self.included(name))
++    def test_credentials_and_generated_outputs_are_excluded(self):
++        for name in ['local.properties', 'release.jks', 'app/build/old.apk', '.gradle/cache', 'old.log']:
++            with self.subTest(name=name): self.assertFalse(self.included(name))
++    def test_provider_sources_and_fixtures_are_preserved(self):
++        for name in ['app/src/main/java/data/scraper/YtsScraper.kt', 'app/src/test/resources/fixture.json']:
++            with self.subTest(name=name): self.assertTrue(self.included(name))
++
++if __name__ == '__main__': unittest.main()

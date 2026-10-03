@@ -1,0 +1,95 @@
+{
+  "unchanged_files": 18,
+  "files": [
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/config/RemoteHosts.kt",
+      "sha256": "aa22e92739ff68e811843ddb113b85b36ed71c9824735fbd34facd12f90d583c",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/api/MovieApiService.kt",
+      "sha256": "3bf527e04ff84f2b81e05eb60c68ad5d464c44ca417b6cb5e6900b25481e74f7",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/api/RetrofitClient.kt",
+      "sha256": "bbaf2e22d2f91a024eaa63a8dd09690a278d5c537cc236a88b7060471ba79042",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/di/NetworkManager.kt",
+      "sha256": "6f12b6cea9bacb5c481d3b58cf934d9cb6e9601803a3381ce94bbe1822569d59",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/repository/TorrentRepository.kt",
+      "sha256": "4d394245fbbec2841abea46327ff0b458a515175813a62f1d5481214c1dccbf3",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/TorrentioScraper.kt",
+      "sha256": "a1860ac80fe65aaf1b2367bd99fc1ab700d5cf38416dd325d6930ec07dd7e57c",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/L337xScraper.kt",
+      "sha256": "07f2c751b9cedad00e5db5c0b9e750e63911380e75df92212a61bb0256268597",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/HtmlDetailScraper.kt",
+      "sha256": "4acfcfb0725d09800ee68813a2b555a53279886096bb0f555f44b09d30ffd91d",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/TorrentsCsvScraper.kt",
+      "sha256": "2e116c1015199a496c9e9a9da15929e253c204369e2d34e20f772be4b247dd52",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/YtsScraper.kt",
+      "sha256": "ab3228f2cb02d451f5350be428b816f816b0bfac41b645f7c83262425c979acb",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/TorrentScraper.kt",
+      "sha256": "72c7e3a035086f50f4c06359879652d0b481a31299c13f0fd262ec0b219acf7b",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/ScraperUtils.kt",
+      "sha256": "e4dc37d695b7599c5f32cccdfa372ec6c78fea71d301f8d94ade88c2fa191150",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/MultiSourceScraper.kt",
+      "sha256": "b0bc381776f27d72213a243894e3814c5db69d6c18f28743de899869601772d6",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/EztvScraper.kt",
+      "sha256": "6448c985a978b13b218f6a255434d0fa6866851f481cb47f14b1529e7adba6e1",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/EstrenosTorrentScraper.kt",
+      "sha256": "4e93cdfc368ecf2e6bcb045161faa690c3f2308aa88f2a4cc48e13dcaccc21a3",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/PirateBayScraper.kt",
+      "sha256": "f5ef91336c9fd595af674e9671b2639dde77bd913d7f521937b442349f8417d7",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/SolidTorrentsScraper.kt",
+      "sha256": "ba325189e1ce45ec0c478a4db5919c5048a834a4eb12c6e114cf0ab97e7d40b5",
+      "unchanged": true
+    },
+    {
+      "path": "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/metadata/WikipediaMetadataProvider.kt",
+      "sha256": "aa4f43c3387c317517443ff8f3dfcb2872ab0fe5f8333fc2896d4741982a11b5",
+      "unchanged": true
+    }
+  ]
+}

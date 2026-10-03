@@ -1,0 +1,15 @@
+{
+  "torrents_count": 1,
+  "torrents": [
+    {
+      "title": "Example.Show.S01E02.1080p.WEB.x265",
+      "filename": "Example.Show.S01E02.1080p.WEB.x265.mkv",
+      "magnet_url": "magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567&dn=Example.Show.S01E02",
+      "size_bytes": "2147483648",
+      "seeds": 120,
+      "peers": 14,
+      "date_released_unix": 1767225600,
+      "episode_url": "https://eztvx.to/ep/1/example-show-s01e02/"
+    }
+  ]
+}

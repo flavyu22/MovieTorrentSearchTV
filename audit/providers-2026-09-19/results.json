@@ -1,0 +1,268 @@
+[
+  {
+    "name": "yts-gg",
+    "url": "https://yts.gg/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "http": 200,
+    "content_type": "application/json; charset=utf-8",
+    "elapsed": 6.74,
+    "final_url": "https://yts.gg/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "keys": [
+      "status",
+      "status_message",
+      "data",
+      "@meta"
+    ],
+    "data_keys": [
+      "movie_count",
+      "limit",
+      "page_number"
+    ],
+    "movies": 0,
+    "status": "RESPONSE_RECEIVED",
+    "contract_valid": true
+  },
+  {
+    "name": "yts-lt",
+    "url": "https://yts.lt/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "http": 200,
+    "content_type": "application/json; charset=utf-8",
+    "elapsed": 22.16,
+    "final_url": "https://yts.gg/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "keys": [
+      "status",
+      "status_message",
+      "data",
+      "@meta"
+    ],
+    "data_keys": [
+      "movie_count",
+      "limit",
+      "page_number"
+    ],
+    "movies": 0,
+    "status": "RESPONSE_RECEIVED",
+    "contract_valid": true
+  },
+  {
+    "name": "yts-accel",
+    "url": "https://movies-api.accel.li/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "http": 200,
+    "content_type": "application/json; charset=utf-8",
+    "elapsed": 6.1,
+    "final_url": "https://movies-api.accel.li/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "keys": [
+      "status",
+      "status_message",
+      "data",
+      "@meta"
+    ],
+    "data_keys": [
+      "movie_count",
+      "limit",
+      "page_number"
+    ],
+    "movies": 0,
+    "status": "RESPONSE_RECEIVED",
+    "contract_valid": true
+  },
+  {
+    "name": "yts-bz",
+    "url": "https://yts.bz/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "http": 200,
+    "content_type": "application/json; charset=utf-8",
+    "elapsed": 12.28,
+    "final_url": "https://yts.gg/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "keys": [
+      "status",
+      "status_message",
+      "data",
+      "@meta"
+    ],
+    "data_keys": [
+      "movie_count",
+      "limit",
+      "page_number"
+    ],
+    "movies": 0,
+    "status": "RESPONSE_RECEIVED",
+    "contract_valid": true
+  },
+  {
+    "name": "yts-ag",
+    "url": "https://yts.ag/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "http": 200,
+    "content_type": "application/json; charset=utf-8",
+    "elapsed": 12.33,
+    "final_url": "https://yts.gg/api/v2/list_movies.json?query_term=Big%20Buck%20Bunny&limit=1",
+    "keys": [
+      "status",
+      "status_message",
+      "data",
+      "@meta"
+    ],
+    "data_keys": [
+      "movie_count",
+      "limit",
+      "page_number"
+    ],
+    "movies": 0,
+    "status": "RESPONSE_RECEIVED",
+    "contract_valid": true
+  },
+  {
+    "name": "eztv",
+    "url": "https://eztvx.to/api/get-torrents?limit=1&page=1",
+    "http": 200,
+    "content_type": "application/json; charset=utf-8",
+    "elapsed": 6.36,
+    "final_url": "https://eztvx.to/api/get-torrents?limit=1&page=1",
+    "keys": [
+      "torrents_count",
+      "limit",
+      "page",
+      "torrents"
+    ],
+    "rows": 1,
+    "sample_keys": [
+      "id",
+      "hash",
+      "filename",
+      "magnet_url",
+      "title",
+      "imdb_id",
+      "season",
+      "episode",
+      "small_screenshot",
+      "large_screenshot",
+      "seeds",
+      "peers",
+      "date_released_unix",
+      "size_bytes"
+    ],
+    "status": "RESPONSE_RECEIVED",
+    "valid_hash_rows": 1
+  },
+  {
+    "name": "tpb",
+    "url": "https://apibay.org/q.php?q=Big%20Buck%20Bunny",
+    "http": 200,
+    "content_type": "application/json",
+    "elapsed": 5.97,
+    "final_url": "https://apibay.org/q.php?q=Big%20Buck%20Bunny",
+    "keys": "array",
+    "rows": 22,
+    "sample_keys": [
+      "id",
+      "name",
+      "info_hash",
+      "leechers",
+      "seeders",
+      "size",
+      "num_files",
+      "username",
+      "added",
+      "status",
+      "category",
+      "imdb"
+    ],
+    "status": "RESPONSE_RECEIVED",
+    "valid_hash_rows": 22
+  },
+  {
+    "name": "solid",
+    "url": "https://solidtorrents.eu/api/v1/search?q=Big%20Buck%20Bunny",
+    "http": 200,
+    "content_type": "application/json; charset=utf-8",
+    "elapsed": 7.11,
+    "final_url": "https://solidtorrents.eu/api/v1/search?q=Big%20Buck%20Bunny",
+    "keys": [
+      "success",
+      "query",
+      "results",
+      "pagination",
+      "took"
+    ],
+    "rows": 20,
+    "sample_keys": [
+      "id",
+      "infohash",
+      "title",
+      "size",
+      "category",
+      "subCategory",
+      "seeders",
+      "leechers",
+      "downloads",
+      "verified",
+      "updatedAt"
+    ],
+    "status": "RESPONSE_RECEIVED",
+    "valid_hash_rows": 20
+  },
+  {
+    "name": "1337x",
+    "url": "https://1337xx.to/search/Big%20Buck%20Bunny/1/",
+    "http": 200,
+    "content_type": "text/html;charset=utf-8",
+    "elapsed": 13.36,
+    "final_url": "https://www.1337xx.to/search/Big%20Buck%20Bunny/1/",
+    "html": true,
+    "status": "RESPONSE_RECEIVED",
+    "detail_links": 20
+  },
+  {
+    "name": "csv",
+    "url": "https://torrents-csv.com/service/search?q=Big%20Buck%20Bunny&size=3&page=1",
+    "http": 200,
+    "content_type": "application/json",
+    "elapsed": 5.16,
+    "final_url": "https://torrents-csv.com/service/search?q=Big%20Buck%20Bunny&size=3&page=1",
+    "keys": [
+      "torrents",
+      "next"
+    ],
+    "rows": 1,
+    "sample_keys": [
+      "infohash",
+      "name",
+      "size_bytes",
+      "created_unix",
+      "seeders",
+      "leechers",
+      "completed",
+      "scraped_date",
+      "id"
+    ],
+    "status": "RESPONSE_RECEIVED",
+    "valid_hash_rows": 1
+  },
+  {
+    "name": "estrenos",
+    "url": "https://estrenostorrent.org/buscar?q=Big%20Buck%20Bunny",
+    "http": 200,
+    "content_type": "text/html; charset=utf-8",
+    "elapsed": 5.88,
+    "final_url": "https://estrenostorrent.org/buscar?q=Big%20Buck%20Bunny",
+    "html": true,
+    "status": "RESPONSE_RECEIVED",
+    "csrf_present": true
+  },
+  {
+    "name": "1337x-detail",
+    "url": "https://1337xx.to/torrent/3250239/The-Big-Bang-Theory-S12E01-720p-HDTV-x264-KILLERS-eztv/",
+    "http": 200,
+    "content_type": "text/html;charset=utf-8",
+    "elapsed": 13.98,
+    "final_url": "https://www.1337xx.to/torrent/3250239/The-Big-Bang-Theory-S12E01-720p-HDTV-x264-KILLERS-eztv/",
+    "html": true,
+    "status": "RESPONSE_RECEIVED",
+    "valid_magnet": true
+  },
+  {
+    "name": "estrenos-search",
+    "url": "https://estrenostorrent.org/mvc/controllers/data.find.php",
+    "status": "UNVERIFIED",
+    "error": "<urlopen error Tunnel connection failed: 403 Forbidden>",
+    "elapsed": 4.05
+  }
+]

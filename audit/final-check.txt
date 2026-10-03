@@ -1,0 +1,88 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDirectDebugBuild UP-TO-DATE
+> Task :app:generateDirectDebugBuildConfig UP-TO-DATE
+> Task :app:generateDirectDebugResources UP-TO-DATE
+> Task :app:packageDirectDebugResources UP-TO-DATE
+> Task :app:processDirectDebugNavigationResources UP-TO-DATE
+> Task :app:parseDirectDebugLocalResources UP-TO-DATE
+> Task :app:generateDirectDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileDirectDebug UP-TO-DATE
+> Task :app:checkDirectDebugAarMetadata UP-TO-DATE
+> Task :app:mapDirectDebugSourceSetPaths UP-TO-DATE
+> Task :app:compileDirectDebugNavigationResources UP-TO-DATE
+> Task :app:mergeDirectDebugResources UP-TO-DATE
+> Task :app:createDirectDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDirectDebug UP-TO-DATE
+> Task :app:processDirectDebugMainManifest UP-TO-DATE
+> Task :app:processDirectDebugManifest UP-TO-DATE
+> Task :app:processDirectDebugManifestForPackage UP-TO-DATE
+> Task :app:processDirectDebugResources UP-TO-DATE
+> Task :app:preDirectDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompileDirectDebugUnitTest UP-TO-DATE
+> Task :app:prePlayDebugBuild UP-TO-DATE
+> Task :app:generatePlayDebugBuildConfig UP-TO-DATE
+> Task :app:generatePlayDebugResources UP-TO-DATE
+> Task :app:packagePlayDebugResources UP-TO-DATE
+> Task :app:processPlayDebugNavigationResources UP-TO-DATE
+> Task :app:parsePlayDebugLocalResources UP-TO-DATE
+> Task :app:generatePlayDebugRFile UP-TO-DATE
+> Task :app:javaPreCompilePlayDebug UP-TO-DATE
+> Task :app:checkPlayDebugAarMetadata UP-TO-DATE
+> Task :app:mapPlayDebugSourceSetPaths UP-TO-DATE
+> Task :app:compilePlayDebugNavigationResources UP-TO-DATE
+> Task :app:mergePlayDebugResources UP-TO-DATE
+> Task :app:createPlayDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksPlayDebug UP-TO-DATE
+> Task :app:processPlayDebugMainManifest UP-TO-DATE
+> Task :app:processPlayDebugManifest UP-TO-DATE
+> Task :app:processPlayDebugManifestForPackage UP-TO-DATE
+> Task :app:processPlayDebugResources UP-TO-DATE
+> Task :app:prePlayDebugUnitTestBuild UP-TO-DATE
+> Task :app:javaPreCompilePlayDebugUnitTest UP-TO-DATE
+> Task :app:preDirectDebugAndroidTestBuild SKIPPED
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:prePlayDebugAndroidTestBuild SKIPPED
+> Task :app:compileDirectDebugKotlin
+> Task :app:compileDirectDebugJavaWithJavac UP-TO-DATE
+> Task :app:processDirectDebugJavaRes UP-TO-DATE
+> Task :app:bundleDirectDebugClassesToRuntimeJar
+> Task :app:compilePlayDebugKotlin
+> Task :app:bundleDirectDebugClassesToCompileJar
+> Task :app:generateDirectDebugLintReportModel
+> Task :app:compilePlayDebugJavaWithJavac UP-TO-DATE
+> Task :app:processPlayDebugJavaRes UP-TO-DATE
+> Task :app:bundlePlayDebugClassesToCompileJar
+> Task :app:bundlePlayDebugClassesToRuntimeJar
+> Task :app:compileDirectDebugUnitTestKotlin
+> Task :app:generateDirectDebugAndroidTestLintModel
+> Task :app:compileDirectDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processDirectDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:testDirectDebugUnitTest
+> Task :app:generateDirectDebugUnitTestLintModel
+> Task :app:compilePlayDebugUnitTestKotlin
+> Task :app:compilePlayDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :app:processPlayDebugUnitTestJavaRes UP-TO-DATE
+> Task :app:testPlayDebugUnitTest
+> Task :app:generatePlayDebugAndroidTestLintModel
+> Task :app:generatePlayDebugLintReportModel
+> Task :app:generatePlayDebugUnitTestLintModel
+> Task :app:lintAnalyzePlayDebugAndroidTest
+> Task :app:lintAnalyzeDirectDebugAndroidTest
+> Task :app:lintAnalyzePlayDebugUnitTest
+> Task :app:lintAnalyzeDirectDebugUnitTest
+> Task :app:lintAnalyzeDirectDebug
+> Task :app:lintAnalyzePlayDebug
+
+> Task :app:lintReportPlayDebug
+Wrote HTML report to file:///C:/Users/mark1/Downloads/MovieTorrentSearchTV_7_PROVIDERS_2026-09-19/MovieTorrentSearchTV-2.0.0/app/build/reports/lint-results-playDebug.html
+Wrote SARIF report to file:///C:/Users/mark1/Downloads/MovieTorrentSearchTV_7_PROVIDERS_2026-09-19/MovieTorrentSearchTV-2.0.0/app/build/reports/lint-results-playDebug.sarif
+
+> Task :app:lintReportDirectDebug
+Wrote HTML report to file:///C:/Users/mark1/Downloads/MovieTorrentSearchTV_7_PROVIDERS_2026-09-19/MovieTorrentSearchTV-2.0.0/app/build/reports/lint-results-directDebug.html
+Wrote SARIF report to file:///C:/Users/mark1/Downloads/MovieTorrentSearchTV_7_PROVIDERS_2026-09-19/MovieTorrentSearchTV-2.0.0/app/build/reports/lint-results-directDebug.sarif
+
+> Task :app:lintDirectDebug
+> Task :app:lintPlayDebug
+
+BUILD SUCCESSFUL in 1m 33s
+69 actionable tasks: 26 executed, 43 up-to-date

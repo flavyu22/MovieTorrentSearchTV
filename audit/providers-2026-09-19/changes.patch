@@ -1,0 +1,241 @@
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/EztvScraper.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/EztvScraper.kt
+@@ -47,7 +47,7 @@
+         val torrents = root.optJSONArray("torrents")
+         val advertisedCount = root.optInt("torrents_count", 0)
+         if (torrents == null) {
+-            if (advertisedCount == 0) return emptyList()
++            if (root.has("torrents_count") && advertisedCount == 0) return emptyList()
+             throw IOException("EZTV response is missing torrents")
+         }
+ 
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/HtmlDetailScraper.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/HtmlDetailScraper.kt
+@@ -99,6 +99,7 @@
+ 
+         // Every mirror either failed to load or never exposes detail links. Distinguish
+         // "network/index unreachable" (raise) from "genuinely no results" (empty list).
++        winner?.let { return it }
+         lastFailure?.let { failure ->
+             throw IOException("${source.name}: ${failure.userMessage()}", failure)
+         }
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/L337xScraper.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/L337xScraper.kt
+@@ -93,7 +93,7 @@
+     private companion object {
+         /** Only live mirror as of 2026-08; re-check periodically and extend the list. */
+         val MIRRORS = listOf(
+-            "https://1337xx.to",
++            "https://www.1337xx.to",
+         )
+         val DETAIL_LINK = Regex(
+             pattern = """href=["'](/torrent/\d+/[^"']*)["'][^>]*>(.*?)</a>""",
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/MirrorSearch.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/MirrorSearch.kt
+@@ -0,0 +1,38 @@
++package io.github.flavyu22.movietorrentsearchtv.data.scraper
++
++import java.io.IOException
++import kotlinx.coroutines.CancellationException
++import kotlinx.coroutines.Deferred
++import kotlinx.coroutines.async
++import kotlinx.coroutines.coroutineScope
++import kotlinx.coroutines.selects.select
++
++/** A slow/dead primary must not consume the caller's entire shared timeout. */
++internal suspend fun <T> firstSuccessfulMirror(fetchers: List<suspend () -> T>): T = coroutineScope {
++    require(fetchers.isNotEmpty()) { "No mirrors configured" }
++    val pending = fetchers.map { fetch ->
++        async {
++            try {
++                Result.success(fetch())
++            } catch (cancelled: CancellationException) {
++                throw cancelled
++            } catch (failure: Exception) {
++                Result.failure<T>(failure)
++            }
++        }
++    }.toMutableList()
++    var lastFailure: Throwable? = null
++    try {
++        while (pending.isNotEmpty()) {
++            val (completed, outcome) = select<Pair<Deferred<Result<T>>, Result<T>>> {
++                pending.forEach { candidate -> candidate.onAwait { candidate to it } }
++            }
++            pending.remove(completed)
++            if (outcome.isSuccess) return@coroutineScope outcome.getOrThrow()
++            lastFailure = outcome.exceptionOrNull()
++        }
++        throw IOException("All mirrors failed", lastFailure)
++    } finally {
++        pending.forEach { it.cancel() }
++    }
++}
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/SolidTorrentsScraper.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/SolidTorrentsScraper.kt
+@@ -87,8 +87,9 @@
+ 
+     internal fun parseSolidResponse(body: String): List<UnifiedTorrent> {
+         val root = JSONObject(body)
+-        if (!root.optBoolean("success", true)) return emptyList()
+-        val resultsArray = root.optJSONArray("results") ?: return emptyList()
++        if (!root.optBoolean("success", true)) throw IOException("Solid rejected the request")
++        val resultsArray = root.optJSONArray("results")
++            ?: throw IOException("Solid response is missing results")
+         val resultCount = minOf(resultsArray.length(), MAX_SCRAPER_RESULTS)
+         val results = ArrayList<UnifiedTorrent>(resultCount)
+ 
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/TorrentioScraper.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/TorrentioScraper.kt
+@@ -71,7 +71,8 @@
+ 
+     internal fun parseTorrentioResponse(body: String): List<UnifiedTorrent> {
+         val root = JSONObject(body)
+-        val streams = root.optJSONArray("streams") ?: return emptyList()
++        val streams = root.optJSONArray("streams")
++            ?: throw IOException("Torrentio response is missing streams")
+         val resultCount = minOf(streams.length(), MAX_SCRAPER_RESULTS)
+         val results = ArrayList<UnifiedTorrent>(resultCount)
+         val seenHashes = HashSet<String>(resultCount * 2)
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/TorrentsCsvScraper.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/TorrentsCsvScraper.kt
+@@ -69,7 +69,8 @@
+ 
+     internal fun parseTorrentsCsvResponse(body: String): List<UnifiedTorrent> {
+         val root = JSONObject(body)
+-        val torrents = root.optJSONArray("torrents") ?: return emptyList()
++        val torrents = root.optJSONArray("torrents")
++            ?: throw IOException("TorrentsCSV response is missing torrents")
+         val resultCount = minOf(torrents.length(), MAX_SCRAPER_RESULTS)
+         val results = ArrayList<UnifiedTorrent>(resultCount)
+ 
+--- a/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/YtsScraper.kt
++++ b/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/YtsScraper.kt
+@@ -3,7 +3,6 @@
+ import io.github.flavyu22.movietorrentsearchtv.model.TorrentSource
+ import io.github.flavyu22.movietorrentsearchtv.model.UnifiedTorrent
+ import io.github.flavyu22.movietorrentsearchtv.config.RemoteHosts
+-import kotlinx.coroutines.CancellationException
+ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+ import okhttp3.OkHttpClient
+ import okhttp3.Request
+@@ -39,18 +38,9 @@
+     private suspend fun searchDomains(query: String): List<UnifiedTorrent> {
+         if (query.isBlank()) return emptyList()
+         val encodedQuery = URLEncoder.encode(query, Charsets.UTF_8.name()).replace("+", "%20")
+-        var lastFailure: Exception? = null
+-
+-        for (domain in DOMAINS) {
+-            try {
+-                return fetchYtsJson("$domain/api/v2/list_movies.json?query_term=$encodedQuery&limit=50")
+-            } catch (cancelled: CancellationException) {
+-                throw cancelled
+-            } catch (failure: Exception) {
+-                lastFailure = failure
+-            }
+-        }
+-        throw IOException("All YTS endpoints failed", lastFailure)
++        return firstSuccessfulMirror(DOMAINS.map { domain ->
++            suspend { fetchYtsJson("$domain/api/v2/list_movies.json?query_term=$encodedQuery&limit=50") }
++        })
+     }
+ 
+     private suspend fun fetchYtsJson(url: String): List<UnifiedTorrent> {
+--- a/app/src/test/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/L337xScraperTest.kt
++++ b/app/src/test/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/L337xScraperTest.kt
+@@ -79,8 +79,8 @@
+ 
+         // 1337xx.to is the only mirror verified live as of 2026-08.
+         assertEquals(1, pages.size)
+-        assertEquals("https://1337xx.to/search/Inception%20Part%20Two/1/", pages[0].url)
+-        assertEquals("https://1337xx.to", pages[0].baseUrl)
++        assertEquals("https://www.1337xx.to/search/Inception%20Part%20Two/1/", pages[0].url)
++        assertEquals("https://www.1337xx.to", pages[0].baseUrl)
+     }
+ 
+     @Test
+--- a/app/src/test/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/ProviderRecoveryTest.kt
++++ b/app/src/test/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/ProviderRecoveryTest.kt
+@@ -0,0 +1,68 @@
++package io.github.flavyu22.movietorrentsearchtv.data.scraper
++
++import java.io.IOException
++import kotlinx.coroutines.CompletableDeferred
++import kotlinx.coroutines.awaitCancellation
++import kotlinx.coroutines.runBlocking
++import kotlinx.coroutines.withTimeout
++import okhttp3.OkHttpClient
++import org.junit.Assert.*
++import org.junit.Test
++
++class ProviderRecoveryTest {
++    @Test fun slowPrimaryDoesNotBlockWorkingMirrorAndIsCancelled() = runBlocking {
++        val started = CompletableDeferred<Unit>()
++        var cancelled = false
++        val value = withTimeout(2_000) {
++            firstSuccessfulMirror(listOf(
++                suspend {
++                    started.complete(Unit)
++                    try { awaitCancellation() } finally { cancelled = true }
++                },
++                suspend { started.await(); "healthy" },
++            ))
++        }
++        assertEquals("healthy", value)
++        assertTrue(cancelled)
++    }
++
++    @Test fun failedMirrorDoesNotDiscardLaterSuccess() = runBlocking {
++        val failed = CompletableDeferred<Unit>()
++        val value = firstSuccessfulMirror(listOf(
++            suspend { failed.complete(Unit); throw IOException("offline") },
++            suspend { failed.await(); "healthy" },
++        ))
++        assertEquals("healthy", value)
++    }
++
++    @Test fun validEmptyResultIsASuccess() = runBlocking {
++        assertTrue(firstSuccessfulMirror(listOf(suspend { emptyList<String>() })).isEmpty())
++    }
++
++    @Test fun everyFailureRemainsAnError() = runBlocking {
++        try {
++            firstSuccessfulMirror(listOf(suspend { throw IOException("offline") }))
++            fail("Expected IOException")
++        } catch (expected: IOException) {
++            assertNotNull(expected.cause)
++        }
++    }
++
++    @Test fun malformedPayloadIsNotAHealthyEmptyIndex() {
++        val client = OkHttpClient()
++        val parsers = listOf<(String) -> Any>(
++            TorrentioScraper(client)::parseTorrentioResponse,
++            TorrentsCsvScraper(client)::parseTorrentsCsvResponse,
++            SolidTorrentsScraper(client)::parseSolidResponse,
++            EztvScraper(client)::parseEztvResponse,
++        )
++        parsers.forEach { parse ->
++            try { parse("{}"); fail("Missing result field must fail") }
++            catch (expected: IOException) { /* Correct: exposed to source-error UI. */ }
++        }
++        assertTrue(TorrentioScraper(client).parseTorrentioResponse("{\"streams\":[]}").isEmpty())
++        assertTrue(TorrentsCsvScraper(client).parseTorrentsCsvResponse("{\"torrents\":[]}").isEmpty())
++        assertTrue(SolidTorrentsScraper(client).parseSolidResponse("{\"success\":true,\"results\":[]}").isEmpty())
++        assertTrue(EztvScraper(client).parseEztvResponse("{\"torrents_count\":0}").isEmpty())
++    }
++}
+--- a/app/src/test/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/SolidTorrentsScraperTest.kt
++++ b/app/src/test/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/SolidTorrentsScraperTest.kt
+@@ -43,9 +43,9 @@
+         assertEquals("1080p", torrent.quality)
+     }
+ 
+-    @Test
++    @Test(expected = java.io.IOException::class)
+     fun rejectsUnsuccessfulResponses() {
+-        assertTrue(scraper.parseSolidResponse("""{"success": false, "results": []}""").isEmpty())
++        scraper.parseSolidResponse("""{"success": false, "results": []}""")
+         assertTrue(scraper.parseSolidResponse("""{"results": null}""").isEmpty())
+     }
+ 

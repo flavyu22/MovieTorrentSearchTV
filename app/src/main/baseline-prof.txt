@@ -1,0 +1,5 @@
+# Conservative seed profile. Regenerate it with
+# :benchmark:connectedBenchmarkAndroidTest on a physical device before each release.
+HSPLio/github/flavyu22/movietorrentsearchtv/MainActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLio/github/flavyu22/movietorrentsearchtv/MovieTorrentApplication;->onCreate()V
+HSPLio/github/flavyu22/movietorrentsearchtv/MovieTorrentApplication;->newImageLoader(Landroid/content/Context;)Lcoil3/ImageLoader;

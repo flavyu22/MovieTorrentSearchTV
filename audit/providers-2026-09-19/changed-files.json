@@ -1,0 +1,13 @@
+[
+  "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/EztvScraper.kt",
+  "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/HtmlDetailScraper.kt",
+  "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/L337xScraper.kt",
+  "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/MirrorSearch.kt",
+  "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/SolidTorrentsScraper.kt",
+  "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/TorrentioScraper.kt",
+  "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/TorrentsCsvScraper.kt",
+  "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/YtsScraper.kt",
+  "app/src/test/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/L337xScraperTest.kt",
+  "app/src/test/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/ProviderRecoveryTest.kt",
+  "app/src/test/java/io/github/flavyu22/movietorrentsearchtv/data/scraper/SolidTorrentsScraperTest.kt"
+]

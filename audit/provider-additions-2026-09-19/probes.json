@@ -1,0 +1,31 @@
+[
+  {
+    "name": "bitsearch",
+    "url": "https://bitsearch.to/search?q=Big%20Buck%20Bunny",
+    "http": 200,
+    "type": "text/html; charset=utf-8",
+    "bytes": 158802,
+    "magnets": 40
+  },
+  {
+    "name": "btdig",
+    "url": "https://btdig.com/search?q=Big%20Buck%20Bunny",
+    "error": "HTTP Error 502: Bad Gateway"
+  },
+  {
+    "name": "archive",
+    "url": "https://archive.org/advancedsearch.php?q=title%3A%28%22Big+Buck+Bunny%22%29+AND+mediatype%3Amovies&fl%5B%5D=identifier%2Ctitle&rows=3&output=json",
+    "http": 200,
+    "type": "application/json",
+    "bytes": 515,
+    "magnets": 0
+  },
+  {
+    "name": "nyaa",
+    "url": "https://nyaa.si/?page=rss&q=Sintel&c=1_0&f=0",
+    "http": 200,
+    "type": "application/xml",
+    "bytes": 1288,
+    "magnets": 0
+  }
+]

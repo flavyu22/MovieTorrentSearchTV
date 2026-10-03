@@ -1,0 +1,46 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:prePlayDebugBuild UP-TO-DATE
+> Task :app:mergePlayDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generatePlayDebugBuildConfig UP-TO-DATE
+> Task :app:generatePlayDebugResources UP-TO-DATE
+> Task :app:packagePlayDebugResources UP-TO-DATE
+> Task :app:processPlayDebugNavigationResources UP-TO-DATE
+> Task :app:parsePlayDebugLocalResources UP-TO-DATE
+> Task :app:generatePlayDebugRFile UP-TO-DATE
+> Task :app:javaPreCompilePlayDebug UP-TO-DATE
+> Task :app:generatePlayDebugAssets UP-TO-DATE
+> Task :app:mergePlayDebugAssets UP-TO-DATE
+> Task :app:compressPlayDebugAssets UP-TO-DATE
+> Task :app:generatePlayDebugGlobalSynthetics UP-TO-DATE
+> Task :app:checkPlayDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarPlayDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexPlayDebug UP-TO-DATE
+> Task :app:mergeLibDexPlayDebug UP-TO-DATE
+> Task :app:checkPlayDebugAarMetadata UP-TO-DATE
+> Task :app:mapPlayDebugSourceSetPaths UP-TO-DATE
+> Task :app:compilePlayDebugNavigationResources UP-TO-DATE
+> Task :app:mergePlayDebugResources UP-TO-DATE
+> Task :app:createPlayDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksPlayDebug UP-TO-DATE
+> Task :app:processPlayDebugMainManifest UP-TO-DATE
+> Task :app:processPlayDebugManifest UP-TO-DATE
+> Task :app:processPlayDebugManifestForPackage UP-TO-DATE
+> Task :app:processPlayDebugResources UP-TO-DATE
+> Task :app:mergePlayDebugJniLibFolders UP-TO-DATE
+> Task :app:mergePlayDebugNativeLibs UP-TO-DATE
+> Task :app:stripPlayDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningPlayDebug UP-TO-DATE
+> Task :app:writePlayDebugAppMetadata UP-TO-DATE
+> Task :app:writePlayDebugSigningConfigVersions UP-TO-DATE
+> Task :app:compilePlayDebugKotlin
+> Task :app:compilePlayDebugJavaWithJavac UP-TO-DATE
+> Task :app:processPlayDebugJavaRes UP-TO-DATE
+> Task :app:mergePlayDebugJavaResource UP-TO-DATE
+> Task :app:dexBuilderPlayDebug
+> Task :app:mergeProjectDexPlayDebug
+> Task :app:packagePlayDebug
+> Task :app:createPlayDebugApkListingFileRedirect UP-TO-DATE
+> Task :app:assemblePlayDebug
+
+BUILD SUCCESSFUL in 3s
+38 actionable tasks: 4 executed, 34 up-to-date

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+      Direct builds can connect to user-configured RFC1918/loopback TorrServer endpoints.
+      Android's XML policy cannot express arbitrary private IP ranges, therefore runtime
+      validation in NetworkManager and TorrserverEndpoint rejects every public HTTP host
+      and every redirect that leaves the private network. Public catalogue traffic remains HTTPS.
+    -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

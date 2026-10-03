@@ -1,0 +1,16 @@
+> Task :app:preBuild UP-TO-DATE
+> Task :app:prePlayDebugBuild UP-TO-DATE
+> Task :app:generatePlayDebugBuildConfig UP-TO-DATE
+> Task :app:generatePlayDebugResources UP-TO-DATE
+> Task :app:packagePlayDebugResources UP-TO-DATE
+> Task :app:processPlayDebugNavigationResources UP-TO-DATE
+> Task :app:parsePlayDebugLocalResources UP-TO-DATE
+> Task :app:generatePlayDebugRFile UP-TO-DATE
+
+> Task :app:compilePlayDebugKotlin
+w: file:///C:/Users/mark1/Downloads/MovieTorrentSearchTV_7_PROVIDERS_2026-09-19/MovieTorrentSearchTV-2.0.0/app/src/main/java/io/github/flavyu22/movietorrentsearchtv/ui/screens/MovieDetailsScreen.kt:395:48 Unnecessary safe call on a non-null receiver of type 'String'.
+
+[Incubating] Problems report is available at: file:///C:/Users/mark1/Downloads/MovieTorrentSearchTV_7_PROVIDERS_2026-09-19/MovieTorrentSearchTV-2.0.0/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 2s
+7 actionable tasks: 1 executed, 6 up-to-date
