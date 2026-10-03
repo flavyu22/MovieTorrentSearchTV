@@ -14,7 +14,7 @@ testRunner = "1.7.0"
 testRules = "1.7.0"
 
 # Global Updates
-navigation = "2.10.1"
+navigation = "2.10.2"
 retrofit = "3.0.0"
 okhttp = "5.5.0"
 coroutines = "1.11.0"
