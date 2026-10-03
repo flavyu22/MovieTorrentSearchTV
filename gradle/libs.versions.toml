@@ -21,7 +21,7 @@ coroutines = "1.11.0"
 coil = "3.6.2"
 shimmer = "1.5.0"
 datastore = "1.2.1"
-okio = "3.18.1"
+okio = "3.18.2"
 coreSplashscreen = "1.2.0"
 # Real org.json implementation for local JVM unit tests (the Android framework
 # org.json classes are stubbed and throw "not mocked" off-device).
