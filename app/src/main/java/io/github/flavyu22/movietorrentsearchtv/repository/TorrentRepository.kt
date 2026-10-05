@@ -175,16 +175,36 @@ class TorrentRepository(context: Context) {
         append(':').append(imdbId.orEmpty().trim().lowercase(Locale.ROOT))
     }
 
-    private fun deduplicate(results: List<UnifiedTorrent>): List<UnifiedTorrent> = results
-        .groupBy { it.infoHash.lowercase(Locale.ROOT) }
-        .mapNotNull { (_, duplicates) ->
-            duplicates.maxWithOrNull(
-                compareBy<UnifiedTorrent> { it.source == "YTS" }
-                    .thenBy { it.seeds }
-                    .thenBy { it.qualityScore }
-            )
+    /**
+     * Single pass over the results: keeps the best row per infohash and returns it already
+     * sorted. The previous implementation used `groupBy` (building a map plus a list per
+     * distinct hash) and then `maxWithOrNull` over each bucket, which allocated far more
+     * than necessary for what is a simple "pick the winner" reduction.
+     */
+    private fun deduplicate(results: List<UnifiedTorrent>): List<UnifiedTorrent> {
+        if (results.size < 2) return results.sorted()
+        val bestByHash = HashMap<String, UnifiedTorrent>(results.size * 2)
+        for (torrent in results) {
+            val key = torrent.infoHash.lowercase(Locale.ROOT)
+            val existing = bestByHash[key]
+            if (existing == null) {
+                bestByHash[key] = torrent
+            } else {
+                val winner = preferredTorrent(existing, torrent)
+                bestByHash[key] = winner
+            }
         }
-        .sorted()
+        return bestByHash.values.sorted()
+    }
+
+    /** Picks the better of two rows for the same infohash. */
+    private fun preferredTorrent(a: UnifiedTorrent, b: UnifiedTorrent): UnifiedTorrent {
+        val aIsYts = a.source.equals("YTS", ignoreCase = true)
+        val bIsYts = b.source.equals("YTS", ignoreCase = true)
+        if (aIsYts != bIsYts) return if (aIsYts) a else b
+        if (a.seeds != b.seeds) return if (a.seeds > b.seeds) a else b
+        return if (a.qualityScore >= b.qualityScore) a else b
+    }
 
     private class SharedResources(val scraper: MultiSourceScraper) {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

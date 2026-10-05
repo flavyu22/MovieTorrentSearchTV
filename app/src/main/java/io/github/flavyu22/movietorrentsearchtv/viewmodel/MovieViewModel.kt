@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import android.util.LruCache
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -114,6 +115,14 @@ class MovieViewModel(
 
     private val tmdbApiKey get() = appPrefs.getString("tmdb_api_key", BuildConfig.TMDB_API_KEY).orEmpty()
     private val tmdbConfigured get() = tmdbApiKey.isNotBlank()
+
+    /**
+     * Last YTS mirror that answered a catalogue request successfully. See
+     * [raceYtsMirrors]. Written from the search coroutine and read on the next search,
+     * so a plain @Volatile reference is sufficient.
+     */
+    @Volatile
+    private var preferredYtsMirror: String? = null
 
     private val torrserverRepository = TorrserverRepository(application)
     private var searchJob: Job? = null
@@ -519,41 +528,67 @@ class MovieViewModel(
      * YTS_MIRROR_TIMEOUT_MS on each dead mirror before ever reaching a healthy
      * one (up to three timeouts in a row); racing the mirrors bounds the wait
      * to the slowest live mirror instead of the sum of all timeouts.
+     *
+     * The mirror that last answered successfully is preferred and tried on its own
+     * first. Catalogue loads repeat the same request shape over and over, so after
+     * the first page the healthy mirror is already known: fanning out to all five
+     * mirrors on every single load spent four extra connections and four extra
+     * responses per page for no benefit. If the preferred mirror fails, the full
+     * race below still runs, so resilience is unchanged.
      */
-    private suspend fun raceYtsMirrors(state: MovieUiState): List<Movie> = coroutineScope {
-        // Populated only after every deferred below has settled, so a plain
-        // list is sufficient (no concurrent writes remain in flight).
-        val failures = mutableListOf<Exception>()
-        val deferreds = YTS_DOMAINS.map { domain ->
-            async {
-                try {
-                    fetchYtsFromMirror(domain, state)
-                } catch (cancelled: CancellationException) {
-                    throw cancelled
-                } catch (failure: Exception) {
-                    failures.add(failure)
-                    null
-                }
+    private suspend fun raceYtsMirrors(state: MovieUiState): List<Movie> {
+        preferredYtsMirror?.let { domain ->
+            try {
+                return fetchYtsFromMirror(domain, state)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The remembered mirror went away (or is rate limiting). Forget it so the
+                // next search re-probes, and fall through to the full parallel race.
+                if (preferredYtsMirror == domain) preferredYtsMirror = null
             }
         }
-        try {
-            val pending = deferreds.toMutableList()
-            while (pending.isNotEmpty()) {
-                val winner = select {
-                    pending.forEach { deferred ->
-                        deferred.onAwait { deferred to it }
+
+        return coroutineScope {
+            // Populated only after every deferred below has settled, so a plain
+            // list is sufficient (no concurrent writes remain in flight).
+            val failures = mutableListOf<Exception>()
+            val deferreds = YTS_DOMAINS.map { domain ->
+                async {
+                    try {
+                        fetchYtsFromMirror(domain, state)
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        failures.add(failure)
+                        null
                     }
                 }
-                pending.remove(winner.first)
-                winner.second?.let { movies -> return@coroutineScope movies }
             }
-            // Every mirror failed — surface the most recent real failure so the
-            // error message stays as informative as the sequential implementation.
-            throw failures.lastOrNull() ?: SearchUnavailableException()
-        } finally {
-            // Cancel the losing mirrors immediately; coroutineScope would
-            // otherwise wait for every remaining request to finish.
-            deferreds.forEach { it.cancel() }
+            try {
+                val pending = deferreds.toMutableList()
+                while (pending.isNotEmpty()) {
+                    val winner = select {
+                        pending.forEach { deferred ->
+                            deferred.onAwait { deferred to it }
+                        }
+                    }
+                    pending.remove(winner.first)
+                    winner.second?.let { movies ->
+                        // Remember which mirror answered so the next catalogue load can
+                        // query it directly instead of racing all of them again.
+                        preferredYtsMirror = YTS_DOMAINS[deferreds.indexOf(winner.first)]
+                        return@coroutineScope movies
+                    }
+                }
+                // Every mirror failed — surface the most recent real failure so the
+                // error message stays as informative as the sequential implementation.
+                throw failures.lastOrNull() ?: SearchUnavailableException()
+            } finally {
+                // Cancel the losing mirrors immediately; coroutineScope would
+                // otherwise wait for every remaining request to finish.
+                deferreds.forEach { it.cancel() }
+            }
         }
     }
 
@@ -699,7 +734,10 @@ class MovieViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             favoritesWriteMutex.withLock {
                 if (generation == favoritesGeneration.get()) {
-                    favoritesPrefs.edit().remove(FAVORITES_JSON).commit()
+                    favoritesPrefs.edit {
+                        remove(FAVORITES_JSON)
+                        commit()
+                    }
                 }
             }
         }
@@ -723,7 +761,15 @@ class MovieViewModel(
         val generation = historyGeneration.incrementAndGet()
         viewModelScope.launch(Dispatchers.IO) {
             historyWriteMutex.withLock {
-                if (generation == historyGeneration.get()) historyPrefs.edit().remove(HISTORY_JSON).commit()
+                if (generation == historyGeneration.get()) {
+                    // commit() is deliberate: this runs under a write mutex, and an in-flight
+                    // apply() could be lost if the process dies before it flushes, taking the
+                    // user's history with it.
+                    historyPrefs.edit {
+                        remove(HISTORY_JSON)
+                        commit()
+                    }
+                }
             }
         }
     }
@@ -735,7 +781,10 @@ class MovieViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             searchHistoryWriteMutex.withLock {
                 if (generation == searchHistoryGeneration.get()) {
-                    searchHistoryPrefs.edit().remove(SEARCH_HISTORY_JSON).commit()
+                    searchHistoryPrefs.edit {
+                        remove(SEARCH_HISTORY_JSON)
+                        commit()
+                    }
                 }
             }
         }
@@ -764,7 +813,10 @@ class MovieViewModel(
             if (json.length > MAX_SEARCH_HISTORY_JSON_CHARS) return@launch
             searchHistoryWriteMutex.withLock {
                 if (generation == searchHistoryGeneration.get()) {
-                    searchHistoryPrefs.edit().putString(SEARCH_HISTORY_JSON, json).commit()
+                    searchHistoryPrefs.edit {
+                        putString(SEARCH_HISTORY_JSON, json)
+                        commit()
+                    }
                 }
             }
         }
@@ -811,22 +863,31 @@ class MovieViewModel(
     fun saveTorrserverAddress(address: String) {
         if (address.isBlank()) {
             _torrserverAddress.value = ""
-            settingsPrefs.edit().remove(TORRSERVER_ADDRESS)
-                .putLong(TORRSERVER_SELECTION_REVISION,
-                    settingsPrefs.getLong(TORRSERVER_SELECTION_REVISION, 0L) + 1L).apply()
+            settingsPrefs.edit {
+                remove(TORRSERVER_ADDRESS)
+                putLong(
+                    TORRSERVER_SELECTION_REVISION,
+                    settingsPrefs.getLong(TORRSERVER_SELECTION_REVISION, 0L) + 1L,
+                )
+            }
             return
         }
         val normalized = TorrserverEndpoint.normalize(address) ?: return
         _torrserverAddress.value = normalized
-        settingsPrefs.edit().putString(TORRSERVER_ADDRESS, normalized)
-            .putLong(TORRSERVER_SELECTION_REVISION,
-                settingsPrefs.getLong(TORRSERVER_SELECTION_REVISION, 0L) + 1L).apply()
+        settingsPrefs.edit {
+            putString(TORRSERVER_ADDRESS, normalized)
+            putLong(
+                TORRSERVER_SELECTION_REVISION,
+                settingsPrefs.getLong(TORRSERVER_SELECTION_REVISION, 0L) + 1L,
+            )
+        }
     }
 
     override fun onCleared() {
         settingsPrefs.unregisterOnSharedPreferenceChangeListener(settingsListener)
         torrserverRepository.destroy()
-        super.onCleared()
+        // No super.onCleared(): ViewModel.onCleared() is an empty no-op, and calling it
+        // only produced an "EmptySuperCall" compiler warning.
     }
 
     private fun updateState(block: MovieUiState.() -> MovieUiState) {
@@ -889,7 +950,10 @@ class MovieViewModel(
             val json = gson.toJson(HistoryEnvelope(movies = movies))
             historyWriteMutex.withLock {
                 if (generation == historyGeneration.get()) {
-                    historyPrefs.edit().putString(HISTORY_JSON, json).commit()
+                    historyPrefs.edit {
+                        putString(HISTORY_JSON, json)
+                        commit()
+                    }
                 }
             }
         }
@@ -906,7 +970,10 @@ class MovieViewModel(
             val json = gson.toJson(HistoryEnvelope(version = FAVORITES_FORMAT_VERSION, movies = movies))
             favoritesWriteMutex.withLock {
                 if (generation == favoritesGeneration.get()) {
-                    favoritesPrefs.edit().putString(FAVORITES_JSON, json).commit()
+                    favoritesPrefs.edit {
+                        putString(FAVORITES_JSON, json)
+                        commit()
+                    }
                 }
             }
         }
@@ -938,7 +1005,10 @@ class MovieViewModel(
             if (json.length > MAX_SELECTED_MOVIE_JSON_CHARS) return@launch
             selectionWriteMutex.withLock {
                 if (generation == selectionGeneration.get()) {
-                    selectionPrefs.edit().putString(SELECTED_MOVIE_JSON, json).commit()
+                    selectionPrefs.edit {
+                        putString(SELECTED_MOVIE_JSON, json)
+                        commit()
+                    }
                 }
             }
         }

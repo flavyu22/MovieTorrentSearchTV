@@ -38,11 +38,27 @@ data class UnifiedTorrent(
     // AggregatedTorrentViewModel read them O(n log n) times per list refresh, and each
     // read used to re-run the size/date parsers from scratch. UnifiedTorrent is only
     // ever held in memory (never Gson-serialized), so the lazy delegates are safe.
-    val sizeInBytes: Long by lazy { parseSizeToBytes(size) }
+    //
+    // PUBLICATION mode replaces the default SYNCHRONIZED mode: every initializer below
+    // is a pure, idempotent function of immutable constructor state, so a duplicated
+    // initialization under a race is harmless. This removes the per-read monitor on
+    // the hot sort path (comparators touch these keys O(n log n) times per refresh).
+    val sizeInBytes: Long by lazy(LazyThreadSafetyMode.PUBLICATION) { parseSizeToBytes(size) }
 
-    val qualityScore: Int by lazy { qualityScoreFor(quality) }
+    val qualityScore: Int by lazy(LazyThreadSafetyMode.PUBLICATION) { qualityScoreFor(quality) }
 
-    val uploadTimeMillis: Long by lazy { parseUploadDateToMillis(uploadDate) }
+    val uploadTimeMillis: Long by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        parseUploadDateToMillis(uploadDate)
+    }
+
+    /**
+     * Lower-cased title used as the final sort tiebreaker. Materialized once per
+     * instance instead of on every [compareTo] call, which previously allocated
+     * O(n log n) throw-away strings for a single sort.
+     */
+    private val sortTitle: String by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        title.lowercase(Locale.ROOT)
+    }
 
     override fun compareTo(other: UnifiedTorrent): Int =
         compareValuesBy(
@@ -51,7 +67,7 @@ data class UnifiedTorrent(
             { -it.qualityScore },
             { -it.seeds },
             { it.seasonEpisode ?: "ZZZ" },
-            { it.title.lowercase(Locale.ROOT) }
+            { it.sortTitle }
         )
 
     companion object {
@@ -66,6 +82,22 @@ data class UnifiedTorrent(
             "yyyy-MM-dd"
         )
 
+        /**
+         * [SimpleDateFormat] is expensive to build (it re-parses the pattern string and
+         * allocates a calendar/DateFormatSymbols pair) and is not thread-safe. The previous
+         * implementation constructed one per format, per torrent, so a single list refresh
+         * allocated hundreds of them. These are created once per thread and reused.
+         */
+        private val dateFormatters: ThreadLocal<Array<SimpleDateFormat>> =
+            object : ThreadLocal<Array<SimpleDateFormat>>() {
+                override fun initialValue(): Array<SimpleDateFormat> = Array(DATE_FORMATS.size) { index ->
+                    SimpleDateFormat(DATE_FORMATS[index], Locale.US).apply {
+                        isLenient = false
+                        timeZone = TimeZone.getTimeZone("UTC")
+                    }
+                }
+            }
+
         // Precompiled once: qualityScoreFor is called from sort comparators, so
         // compiling these patterns per call used to dominate torrent-list sorting.
         // Inputs are uppercased before matching, hence no IGNORE_CASE option.
@@ -77,6 +109,32 @@ data class UnifiedTorrent(
         private val SD_QUALITY_PATTERN = Regex("""\b(480P|576P|SD|DVD)\b""")
         private val EFFICIENT_CODEC_PATTERN = Regex("""\b(X265|H265|HEVC|AV1)\b""")
         private val HDR_QUALITY_PATTERN = Regex("""\b(HDR10\+?|DOLBY[ ._-]?VISION|DV)\b""")
+
+        /**
+         * Quality labels repeat heavily across a result set (the same handful of
+         * "1080p x265 HDR" style strings show up in every source), yet the scoring
+         * routine runs up to seven regex scans per call. A tiny bounded memo turns the
+         * repeated lookups into a single map hit.
+         */
+        private val qualityScoreCache = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
+        private fun computeQualityScore(normalized: String): Int {
+            if (CAM_QUALITY_PATTERN.containsMatchIn(normalized)) {
+                return -100
+            }
+
+            var score = when {
+                EIGHT_K_QUALITY_PATTERN.containsMatchIn(normalized) -> 500
+                FOUR_K_QUALITY_PATTERN.containsMatchIn(normalized) -> 400
+                FULL_HD_QUALITY_PATTERN.containsMatchIn(normalized) -> 300
+                HD_QUALITY_PATTERN.containsMatchIn(normalized) -> 200
+                SD_QUALITY_PATTERN.containsMatchIn(normalized) -> 100
+                else -> 0
+            }
+            if (EFFICIENT_CODEC_PATTERN.containsMatchIn(normalized)) score += 25
+            if (HDR_QUALITY_PATTERN.containsMatchIn(normalized)) score += 10
+            return score
+        }
 
         fun parseSizeToBytes(size: String): Long {
             val match = SIZE_PATTERN.find(size.trim()) ?: return 0L
@@ -100,20 +158,10 @@ data class UnifiedTorrent(
         fun qualityScoreFor(quality: String?): Int {
             val normalized = quality.orEmpty().uppercase(Locale.ROOT)
             if (normalized.isBlank()) return 0
-            if (CAM_QUALITY_PATTERN.containsMatchIn(normalized)) {
-                return -100
-            }
-
-            var score = when {
-                EIGHT_K_QUALITY_PATTERN.containsMatchIn(normalized) -> 500
-                FOUR_K_QUALITY_PATTERN.containsMatchIn(normalized) -> 400
-                FULL_HD_QUALITY_PATTERN.containsMatchIn(normalized) -> 300
-                HD_QUALITY_PATTERN.containsMatchIn(normalized) -> 200
-                SD_QUALITY_PATTERN.containsMatchIn(normalized) -> 100
-                else -> 0
-            }
-            if (EFFICIENT_CODEC_PATTERN.containsMatchIn(normalized)) score += 25
-            if (HDR_QUALITY_PATTERN.containsMatchIn(normalized)) score += 10
+            qualityScoreCache[normalized]?.let { return it }
+            val score = computeQualityScore(normalized)
+            if (qualityScoreCache.size >= MAX_QUALITY_SCORE_CACHE_ENTRIES) qualityScoreCache.clear()
+            qualityScoreCache[normalized] = score
             return score
         }
 
@@ -129,17 +177,17 @@ data class UnifiedTorrent(
                 }
             }
 
-            for (pattern in DATE_FORMATS) {
-                val formatter = SimpleDateFormat(pattern, Locale.US).apply {
-                    isLenient = false
-                    timeZone = TimeZone.getTimeZone("UTC")
-                }
-                val position = ParsePosition(0)
+            val position = ParsePosition(0)
+            for (formatter in dateFormatters.get()!!) {
+                position.index = 0
+                position.errorIndex = -1
                 val parsed = formatter.parse(text, position)
                 if (parsed != null && position.index == text.length) return parsed.time
             }
             return 0L
         }
+
+        private const val MAX_QUALITY_SCORE_CACHE_ENTRIES = 512
 
         private fun normalizeDecimal(value: String): String {
             if (',' !in value) return value

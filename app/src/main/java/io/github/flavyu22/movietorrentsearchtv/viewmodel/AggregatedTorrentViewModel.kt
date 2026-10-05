@@ -4,11 +4,11 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.Immutable
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.flavyu22.movietorrentsearchtv.api.RetrofitClient
 import io.github.flavyu22.movietorrentsearchtv.data.metadata.WikipediaMetadataProvider
-import io.github.flavyu22.movietorrentsearchtv.data.scraper.normalizeQualityLabel
 import io.github.flavyu22.movietorrentsearchtv.di.NetworkManager
 import io.github.flavyu22.movietorrentsearchtv.model.Movie
 import io.github.flavyu22.movietorrentsearchtv.model.UnifiedTorrent
@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.merge
@@ -41,7 +42,6 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
         val torrents: List<UnifiedTorrent> = emptyList(),
         val isLoading: Boolean = false,
         val isEmptyResult: Boolean = false,
-        val loadingProgress: Map<String, Int> = emptyMap(),
         val sourceErrors: Map<String, String> = emptyMap(),
         val totalResultsCount: Int = 0,
         val availableQualities: List<String> = listOf("All"),
@@ -52,8 +52,6 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
 
     @Immutable
     data class SearchStats(
-        val totalSources: Int,
-        val activeSources: Int,
         val totalResults: Int,
         val durationMs: Long
     )
@@ -67,12 +65,6 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
         val quality: String,
         val sort: SortOption,
         val languageFilter: Boolean
-    )
-
-    private data class FilteredResults(
-        val visible: List<UnifiedTorrent>,
-        val totalCount: Int,
-        val qualities: List<String>
     )
 
     private val repository = TorrentRepository(application)
@@ -111,6 +103,11 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
                 .mapLatest { (results, quality, sort, languageFilter) ->
                     filterAndSort(results, quality, sort, languageFilter)
                 }
+                // DistinctUntilChanged keeps a re-emission that produces an identical
+                // FilteredTorrentResults (for example a source that reported no new rows) from
+                // pushing a new _uiState instance and re-composing the whole details
+                // screen for nothing.
+                .distinctUntilChanged()
                 .flowOn(Dispatchers.Default)
                 .catch { e ->
                     Log.e(TAG, "Error filtering results", e)
@@ -137,13 +134,12 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             currentQualityFilter.value = "All"
-            rawResults.value = emptyList()
+            resetRawResults()
             updateIfCurrent(generation) {
                 copy(
                     isLoading = true,
                     isEmptyResult = false,
                     torrents = emptyList(),
-                    loadingProgress = emptyMap(),
                     sourceErrors = emptyMap(),
                     totalResultsCount = 0,
                     availableQualities = listOf("All"),
@@ -242,17 +238,20 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
                     }
 
                     updateIfCurrent(generation) {
-                        copy(
-                            loadingProgress = sourceCounts.toMap(),
-                            sourceErrors = sourceErrors.toMap()
-                        )
+                        copy(sourceErrors = sourceErrors.toMap())
                     }
 
                     if (outcome.torrents.isNotEmpty()) {
+                        val series = searchableMovie.isSeries
                         val relevant = withContext(Dispatchers.Default) {
                             outcome.torrents.asSequence()
                                 .filter { TorrentMatcher.isTorrentRelevant(it, searchableMovie) }
-                                .map { it.copy(isSeries = searchableMovie.isSeries) }
+                                // Only copy when the flag actually differs. `copy` builds a
+                                // brand-new instance and therefore discards the memoized
+                                // size/quality/date/sort-title keys, forcing every sort
+                                // comparator to re-parse them afterwards. The overwhelming
+                                // majority of rows already carry the correct value.
+                                .map { if (it.isSeries == series) it else it.copy(isSeries = series) }
                                 .toList()
                         }
                         ensureCurrent(generation)
@@ -274,8 +273,6 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
                             isEmptyResult = completedNormally && finalCount == 0,
                             sourceErrors = sourceErrors.toMap(),
                             searchStats = SearchStats(
-                                totalSources = repository.getScrapersCount(movie.isSeries),
-                                activeSources = sourceCounts.count { it.value > 0 },
                                 totalResults = finalCount,
                                 durationMs = System.currentTimeMillis() - startedAt
                             )
@@ -290,7 +287,7 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
     fun setTorrentLanguageFilter(enabled: Boolean) {
         languageFilterEnabled.value = enabled
         getApplication<Application>().getSharedPreferences(APP_PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(TORRENT_LANGUAGE_FILTER, enabled).apply()
+            .edit { putBoolean(TORRENT_LANGUAGE_FILTER, enabled) }
     }
 
     private fun readTorrentLanguageFilterPref(): Boolean =
@@ -380,12 +377,45 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
             null
         }
 
+    /**
+     * Accumulates deduplicated results by lower-cased infohash.
+     *
+     * The previous implementation rebuilt the map from scratch on every incoming source
+     * (`(existing + incoming).groupBy { ... }`), which is O(total) per source and therefore
+     * O(n²) across a full multi-source search. Keeping a live index makes each merge O(k)
+     * in the number of *new* rows, so the whole search becomes linear.
+     *
+     * Only touched from the single search collector coroutine, so a plain LinkedHashMap
+     * is sufficient and preserves a stable, deterministic ordering for the UI.
+     */
+    private val mergedResultsByHash = LinkedHashMap<String, UnifiedTorrent>()
+
     private fun mergeRawResults(incoming: List<UnifiedTorrent>) {
-        rawResults.update { existing ->
-            (existing + incoming)
-                .groupBy { it.infoHash.lowercase(Locale.ROOT) }
-                .mapNotNull { (_, duplicates) -> preferredTorrent(duplicates) }
+        var changed = false
+        for (torrent in incoming) {
+            val key = torrent.infoHash.lowercase(Locale.ROOT)
+            val existing = mergedResultsByHash[key]
+            if (existing == null) {
+                mergedResultsByHash[key] = torrent
+                changed = true
+            } else {
+                val winner = preferredTorrent(listOf(existing, torrent)) ?: existing
+                if (winner !== existing) {
+                    mergedResultsByHash[key] = winner
+                    changed = true
+                }
+            }
         }
+        if (!changed) return
+        // A fresh immutable snapshot is required: StateFlow only emits on a new instance,
+        // and downstream sorting must never observe the list while it is being mutated.
+        rawResults.value = mergedResultsByHash.values.toList()
+    }
+
+    /** Drops every accumulated row; called when a new search starts. */
+    private fun resetRawResults() {
+        mergedResultsByHash.clear()
+        rawResults.value = emptyList()
     }
 
     private fun preferredTorrent(duplicates: List<UnifiedTorrent>): UnifiedTorrent? =
@@ -395,62 +425,23 @@ class AggregatedTorrentViewModel(application: Application) : AndroidViewModel(ap
                 .thenBy { it.qualityScore }
         )
 
+    /**
+     * Thin Android-aware wrapper around [TorrentResultFilter]: it resolves the app
+     * language from preferences and hands the pure pass everything else it needs.
+     * The filtering/sorting rules themselves are unit-tested in `TorrentResultFilterTest`.
+     */
     private fun filterAndSort(
         baseResults: List<UnifiedTorrent>,
         targetQuality: String,
         sort: SortOption,
         languageFilter: Boolean
-    ): FilteredResults {
-        val languageFiltered = if (languageFilter) {
-            val language = appLanguage()
-            baseResults.filter { TorrentMatcher.matchesAppLanguage(it.title, language) }
-        } else {
-            baseResults
-        }
-        val filtered = if (targetQuality == "All") languageFiltered else {
-            languageFiltered.filter { normalizeQualityLabel(it.quality).equals(targetQuality, ignoreCase = true) }
-        }
-        val seriesMode = languageFiltered.any(UnifiedTorrent::isSeries)
-        val sorted = when (sort) {
-            SortOption.QUALITY_DESC -> if (seriesMode) {
-                filtered.sortedWith(
-                    compareBy<UnifiedTorrent> { it.seasonEpisode ?: "ZZZ" }
-                        .thenByDescending { it.qualityScore }
-                        .thenByDescending { it.seeds }
-                )
-            } else filtered.sorted()
-
-            SortOption.SEEDS_DESC -> filtered.sortedWith(
-                compareBy<UnifiedTorrent> { if (seriesMode) it.seasonEpisode ?: "ZZZ" else "" }
-                    .thenByDescending { it.seeds }
-                    .thenByDescending { it.qualityScore }
-            )
-
-            SortOption.SIZE_ASC -> filtered.sortedWith(
-                compareBy<UnifiedTorrent> { it.sizeInBytes.takeIf { size -> size > 0L } ?: Long.MAX_VALUE }
-                    .thenByDescending { it.qualityScore }
-                    .thenByDescending { it.seeds }
-            )
-
-            SortOption.DATE_DESC -> filtered.sortedWith(
-                compareByDescending<UnifiedTorrent> { it.uploadTimeMillis }
-                    .thenByDescending { it.qualityScore }
-                    .thenByDescending { it.seeds }
-            )
-
-            SortOption.SOURCE -> filtered.sortedWith(
-                compareBy<UnifiedTorrent> { it.source.lowercase(Locale.ROOT) }
-                    .thenByDescending { it.qualityScore }
-                    .thenByDescending { it.seeds }
-            )
-        }
-        val qualities = languageFiltered.asSequence()
-            .map { normalizeQualityLabel(it.quality) }
-            .distinct()
-            .sortedByDescending(UnifiedTorrent::qualityScoreFor)
-            .toList()
-        return FilteredResults(sorted, languageFiltered.size, listOf("All") + qualities)
-    }
+    ): FilteredTorrentResults = TorrentResultFilter.filterAndSort(
+        baseResults = baseResults,
+        targetQuality = targetQuality,
+        sort = sort,
+        languageFilter = languageFilter,
+        appLanguage = if (languageFilter) appLanguage() else ""
+    )
 
     private fun updateIfCurrent(
         generation: Long,

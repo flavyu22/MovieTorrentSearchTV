@@ -2,6 +2,7 @@ package io.github.flavyu22.movietorrentsearchtv.security
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
@@ -65,7 +66,7 @@ object SecurityUtils {
             appContext.deleteSharedPreferences(LEGACY_PREFS_FILE)
             // The in-memory value changes immediately; persisting asynchronously avoids
             // blocking the first Activity frame on a one-time migration marker write.
-            preferences.edit().putBoolean(KEY_LEGACY_REMOVED, true).apply()
+            preferences.edit { putBoolean(KEY_LEGACY_REMOVED, true) }
         }
         return preferences
     }
@@ -82,6 +83,7 @@ object SecurityUtils {
         preferences.getString(KEY_PROFILE_NAME, "").orEmpty()
 
     /** Explicit recovery path used only after the UI reports corrupt verifier state. */
+    @Suppress("UseKtx") // Needs commit()'s Boolean; the KTX edit { } block returns Unit.
     fun resetLocalCredential(preferences: SharedPreferences): Boolean = synchronized(this) {
         preferences.edit()
             .clear()
@@ -135,20 +137,27 @@ object SecurityUtils {
         }.getOrElse { return@synchronized AuthenticationResult.CorruptConfiguration }
 
         if (MessageDigest.isEqual(actual, expected)) {
-            preferences.edit()
-                .remove(KEY_FAILED_ATTEMPTS)
-                .remove(KEY_LOCKED_UNTIL)
-                .commit()
+            preferences.edit {
+                remove(KEY_FAILED_ATTEMPTS)
+                remove(KEY_LOCKED_UNTIL)
+                // commit() is deliberate: the lockout counters must be on disk before the
+                // next authentication attempt is served, so the attempt history cannot be
+                // lost to an in-flight apply() when the process is killed.
+                commit()
+            }
             return@synchronized AuthenticationResult.Success(credentialCreated = false)
         }
 
         val failedAttempts = preferences.getInt(KEY_FAILED_ATTEMPTS, 0)
             .coerceAtLeast(0) + 1
         val delayMs = lockoutForAttempt(failedAttempts)
-        preferences.edit()
-            .putInt(KEY_FAILED_ATTEMPTS, failedAttempts)
-            .putLong(KEY_LOCKED_UNTIL, nowEpochMs + delayMs)
-            .commit()
+        preferences.edit {
+            putInt(KEY_FAILED_ATTEMPTS, failedAttempts)
+            putLong(KEY_LOCKED_UNTIL, nowEpochMs + delayMs)
+            // commit() is deliberate: a lost write here would reset the failed-attempt
+            // counter and let an attacker brute-force the local PIN without lockout.
+            commit()
+        }
         AuthenticationResult.InvalidCredential(delayMs)
     }
 

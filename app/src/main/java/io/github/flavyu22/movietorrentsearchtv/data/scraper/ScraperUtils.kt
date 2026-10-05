@@ -17,6 +17,7 @@ import java.security.MessageDigest
 import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlin.math.roundToLong
 
 fun normalizeQualityLabel(quality: String?): String {
     val value = quality.orEmpty()
@@ -49,7 +50,9 @@ fun detectLanguage(title: String, source: String): String? {
     if (MULTI_LANGUAGE_PATTERN.containsMatchIn(normalized)) return "Multi"
 
     for ((language, patterns) in LANGUAGE_PATTERNS) {
-        if (patterns.any { it.containsMatchIn(normalized) }) return language
+        for (pattern in patterns) {
+            if (pattern.containsMatchIn(normalized)) return language
+        }
     }
 
     return when (source.uppercase(Locale.ROOT)) {
@@ -157,8 +160,19 @@ internal fun absoluteUrl(base: String, href: String): String? {
 fun magnetInfohashFromTorrent(torrentBytes: ByteArray): String? {
     val info = bencodedInfoDictionary(torrentBytes) ?: return null
     val digest = MessageDigest.getInstance("SHA-1").digest(info)
-    return digest.joinToString("") { "%02x".format(it) }
+    // A lookup table replaces "%02x".format(byte) per digest byte. String.format allocates a
+    // Formatter, parses the format string and boxes the argument, so the original 40-iteration
+    // loop was orders of magnitude slower than a direct hex table lookup.
+    val hex = CharArray(digest.size * 2)
+    for (index in digest.indices) {
+        val value = digest[index].toInt() and 0xff
+        hex[index * 2] = HEX_DIGITS[value ushr 4]
+        hex[index * 2 + 1] = HEX_DIGITS[value and 0x0f]
+    }
+    return String(hex)
 }
+
+private val HEX_DIGITS = "0123456789abcdef".toCharArray()
 
 /** Returns the raw bytes of the top-level `info` dictionary, or null when not parseable. */
 private fun bencodedInfoDictionary(torrent: ByteArray): ByteArray? {
@@ -301,14 +315,48 @@ fun parseMagnetSearchHtml(html: String, sourceName: String): List<UnifiedTorrent
 fun normalizeSize(sizeStr: String): String {
     val bytes = UnifiedTorrent.parseSizeToBytes(sizeStr)
     if (bytes <= 0L) return sizeStr.trim().ifEmpty { "N/A" }
+    // String.format is one of the most expensive calls available on Android (it parses the
+    // format string, allocates a Formatter and boxes the arguments). It used to run once
+    // per torrent row; plain StringBuilder concatenation is equivalent for these fixed
+    // "%.2f"/"%.0f" shapes and dramatically cheaper.
     return when {
-        bytes >= TIB -> String.format(Locale.US, "%.2f TB", bytes / TIB.toDouble())
-        bytes >= GIB -> String.format(Locale.US, "%.2f GB", bytes / GIB.toDouble())
-        bytes >= MIB -> String.format(Locale.US, "%.0f MB", bytes / MIB.toDouble())
-        bytes >= KIB -> String.format(Locale.US, "%.0f KB", bytes / KIB.toDouble())
+        bytes >= TIB -> buildString {
+            append(formatTwoDecimals(bytes / TIB.toDouble()))
+            append(" TB")
+        }
+        bytes >= GIB -> buildString {
+            append(formatTwoDecimals(bytes / GIB.toDouble()))
+            append(" GB")
+        }
+        bytes >= MIB -> buildString {
+            append(formatNoDecimals(bytes / MIB.toDouble()))
+            append(" MB")
+        }
+        bytes >= KIB -> buildString {
+            append(formatNoDecimals(bytes / KIB.toDouble()))
+            append(" KB")
+        }
         else -> "$bytes B"
     }
 }
+
+/** Equivalent to String.format(Locale.US, "%.2f", value) without the Formatter overhead. */
+private fun formatTwoDecimals(value: Double): String {
+    // `.roundToLong()` rounds half-up for non-negative values, matching String.format("%.2f")
+    // (which rounds half-up too) without the Math.round -> Long detour.
+    val scaled = (value * 100.0).roundToLong()
+    val whole = scaled / 100
+    val fraction = scaled % 100
+    return buildString(8) {
+        append(whole)
+        append('.')
+        if (fraction < 10) append('0')
+        append(fraction)
+    }
+}
+
+/** Equivalent to String.format(Locale.US, "%.0f", value) without the Formatter overhead. */
+private fun formatNoDecimals(value: Double): String = Math.round(value).toString()
 
 internal class HttpStatusException(val statusCode: Int, url: String) :
     IOException("HTTP $statusCode from ${url.substringBefore('?')}")
@@ -400,12 +448,18 @@ internal suspend fun OkHttpClient.awaitBytes(
     }
 
 private val WHITESPACE_COLLAPSE = Regex("\\s+")
+// Release names glue the resolution to the next token without any separator, so a trailing
+// `\b` never fires: in "2160pHD" the next character is "H" (still a word character) and in
+// "1080p_nnm-club" it is "_" (also a word character). Those titles therefore fell through to
+// "Unknown" even though the resolution was right there. The trailing class instead ends the
+// token on any non-alphanumeric separator, while still rejecting a longer number such as
+// "10800p". A leading `\b` is kept so "x264" never matches the "264" of a resolution.
 private val CAM_PATTERN = Regex("""\b(?:HD[ ._-]?CAM|CAM[ ._-]?RIP|CAM|TELESYNC|TS|TC)\b""", RegexOption.IGNORE_CASE)
-private val EIGHT_K_PATTERN = Regex("""\b(?:4320P|8K)\b""", RegexOption.IGNORE_CASE)
-private val FOUR_K_PATTERN = Regex("""\b(?:2160P?|4K|UHD)\b""", RegexOption.IGNORE_CASE)
-private val FULL_HD_PATTERN = Regex("""\b(?:1080P?|FHD)\b""", RegexOption.IGNORE_CASE)
-private val HD_PATTERN = Regex("""\b(?:720P?|HD)\b""", RegexOption.IGNORE_CASE)
-private val SD_PATTERN = Regex("""\b(?:480P?|576P?|SD|DVD)\b""", RegexOption.IGNORE_CASE)
+private val EIGHT_K_PATTERN = Regex("""\b(?:4320P?|8K)(?![0-9])""", RegexOption.IGNORE_CASE)
+private val FOUR_K_PATTERN = Regex("""\b(?:2160P?|4K|UHD)(?![0-9])""", RegexOption.IGNORE_CASE)
+private val FULL_HD_PATTERN = Regex("""\b(?:1080P?|FHD)(?![0-9])""", RegexOption.IGNORE_CASE)
+private val HD_PATTERN = Regex("""\b(?:720P?|HD)(?![0-9A-Za-z])""", RegexOption.IGNORE_CASE)
+private val SD_PATTERN = Regex("""\b(?:480P?|576P?|SD|DVD)(?![0-9A-Za-z])""", RegexOption.IGNORE_CASE)
 private val HEVC_PATTERN = Regex("""\b(?:X265|H[ ._-]?265|HEVC)\b""", RegexOption.IGNORE_CASE)
 private val AV1_PATTERN = Regex("""\bAV1\b""", RegexOption.IGNORE_CASE)
 private val HDR_PATTERN = Regex("""\b(?:HDR10\+?|HDR|DOLBY[ ._-]?VISION)\b""", RegexOption.IGNORE_CASE)

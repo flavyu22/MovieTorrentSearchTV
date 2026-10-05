@@ -207,8 +207,14 @@ if 'putBoolean("is_logged_in", true)' in app_view_model or 'putBoolean(LEGACY_LO
 # A persisted session is an intentional, user-selected feature so the local profile is not
 # re-locked on every launch. The persisted flag must still be cleared on a manual logout so
 # logging out always re-locks the profile on the next start.
-if ".remove(LOGGED_IN_SESSION_KEY)" not in app_view_model:
+# The flag is removed inside a DataStore `edit { ... }` block, so the literal prefix is
+# "remove(" rather than ".remove(". Also require that the clearing helper is actually
+# reachable from logout(), so an orphaned helper cannot satisfy this guard on its own.
+if "remove(LOGGED_IN_SESSION_KEY)" not in app_view_model:
     fail("Persistent authenticated session must be cleared on logout")
+logout_body = re.search(r"fun logout\(\)\s*\{(?P<body>[^}]*)\}", app_view_model)
+if logout_body is None or "clearPersistedSession()" not in logout_body.group("body"):
+    fail("logout() must call clearPersistedSession() to re-lock the profile")
 
 movie_view_model = read(ROOT / "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/viewmodel/MovieViewModel.kt")
 for token in (
@@ -271,6 +277,28 @@ for path in files:
         fail(f"Unexpected cleartext URL in production Kotlin source: {rel}")
 
 
+# Every scraper must reject rows whose info-hash is missing or malformed before emitting a
+# UnifiedTorrent. MultiSourceScraper.collectResults de-duplicates with
+# `distinctBy { it.infoHash.lowercase() }`, so a single blank hash would collapse every
+# blank-hash row from every source into one result and silently drop real torrents.
+# Validation is spelled either `INFO_HASH.matches(...)` (shared regex) or a file-local
+# `HASH.matches(...)`, and a magnet-derived hash is guarded with an `isEmpty()` check.
+scraper_dir = ROOT / "app/src/main/java/io/github/flavyu22/movietorrentsearchtv/data/scraper"
+for scraper_path in sorted(scraper_dir.glob("*Scraper.kt")):
+    scraper_text = read(scraper_path)
+    if "UnifiedTorrent(" not in scraper_text:
+        continue  # TorrentScraper is the interface; MultiSourceScraper only aggregates.
+    validates_hash = re.search(
+        r"\w*HASH\s*\.\s*matches\(|"
+        r"(?:infoHash|hash)\s*\.\s*isEmpty\(\)\s*\)?\s*(?:\{|continue|return|if)",
+        scraper_text,
+    )
+    if validates_hash is None:
+        fail(
+            f"{scraper_path.name} emits UnifiedTorrent without validating the info-hash; "
+            "a blank hash is collapsed by the per-source distinctBy dedup"
+        )
+
 sbom_script = read(ROOT / "scripts/generate-sbom.py")
 for token in ("tomllib", "libs.versions.toml", "declared version-catalog dependencies"):
     if token not in sbom_script:
@@ -287,11 +315,60 @@ for token in ("body.source()", "readUpTo(", "MAX_PAYLOAD_BYTES"):
     if token not in wikipedia_provider:
         fail(f"Wikipedia metadata provider must use a bounded payload read: {token}")
 
-banner = ROOT / "app/src/main/res/drawable/tv_banner.png"
-if not banner.is_file():
+# The banner lives in drawable-nodpi so Android TV does not rescale it per density;
+# accept either qualifier directory so relocating the asset cannot silently skip the guard.
+banner = next(
+    (
+        candidate
+        for candidate in (
+            ROOT / "app/src/main/res/drawable-nodpi/tv_banner.png",
+            ROOT / "app/src/main/res/drawable/tv_banner.png",
+        )
+        if candidate.is_file()
+    ),
+    None,
+)
+if banner is None:
     fail("Android TV banner is missing")
 elif png_dimensions(banner) != (320, 180):
     fail(f"Android TV banner must be 320x180, found {png_dimensions(banner)}")
+
+# The published update manifest is what every installed Direct build polls. Its sha256 must
+# match the APK the release actually serves, otherwise the in-app updater downloads the
+# asset and then rejects it on the integrity check, leaving the user stuck on an old
+# version with no error they can act on. A stale manifest was shipped this way once: the
+# committed update.json carried the digest of a superseded build while the release asset
+# was a different APK. Whenever the staged release directory is present, cross-check the
+# committed manifest against it so the mismatch is caught before publishing rather than
+# on a user's device.
+manifest = ROOT / "update.json"
+staged_manifest = ROOT.parent / "github-release-v2.1.0" / "update.json"
+staged_apk = ROOT.parent / "github-release-v2.1.0" / "app-direct-release.apk"
+if not manifest.is_file():
+    fail("update.json must be published at the repository root for the in-app updater")
+else:
+    manifest_text = read(manifest)
+    sha = re.search(r'"sha256"\s*:\s*"([0-9a-f]{64})"', manifest_text)
+    size = re.search(r'"sizeBytes"\s*:\s*(\d+)', manifest_text)
+    if sha is None:
+        fail("update.json is missing a well-formed 64-hex sha256")
+    if size is None:
+        fail("update.json is missing an integer sizeBytes")
+    if staged_manifest.is_file() and staged_apk.is_file():
+        # The staged release is the source of truth for what the release actually serves.
+        staged_sha = re.search(r'"sha256"\s*:\s*"([0-9a-f]{64})"', read(staged_manifest))
+        if staged_sha is not None and sha is not None and staged_sha.group(1) != sha.group(1):
+            fail(
+                "update.json sha256 does not match the staged release manifest "
+                f"({sha.group(1)} != {staged_sha.group(1)}); the in-app updater would "
+                "reject the published APK"
+            )
+        staged_size = staged_apk.stat().st_size
+        if size is not None and int(size.group(1)) != staged_size:
+            fail(
+                f"update.json sizeBytes ({size.group(1)}) does not match the staged "
+                f"app-direct-release.apk ({staged_size})"
+            )
 
 if ERRORS:
     print("Project verification FAILED:", file=sys.stderr)

@@ -1,5 +1,6 @@
 package io.github.flavyu22.movietorrentsearchtv.data.scraper
 
+import io.github.flavyu22.movietorrentsearchtv.BuildConfig
 import io.github.flavyu22.movietorrentsearchtv.model.TorrentSource
 import io.github.flavyu22.movietorrentsearchtv.model.UnifiedTorrent
 import java.util.concurrent.atomic.AtomicInteger
@@ -7,19 +8,60 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MultiSourceScraperTest {
+    /**
+     * Locks the trimmed provider set.
+     *
+     * The active list is deliberately short because every provider is queried once per
+     * title variant on each detail screen. BitSearch and Nyaa were removed for latency,
+     * and Rutracker only registers when an API key is present, so the expected list is
+     * asserted conditionally rather than always containing all nine historical names.
+     */
     @Test
     fun activeProvidersMatchTheRequestedSelection() {
-        val names = MultiSourceScraper(okhttp3.OkHttpClient()).scrapers.map { it.source.name }
-        assertEquals(
-            listOf(
-                "YTS", "EZTV", "TPB", "Solid", "TorrentsCSV",
-                "BitSearch", "Nyaa", "Rutor", "Rutracker",
-            ),
-            names,
-        )
+        val scraper = MultiSourceScraper(OkHttpClient())
+        val names = scraper.scrapers.map { it.source.name }
+
+        val expected = buildList {
+            addAll(listOf("YTS", "EZTV", "TPB", "Solid", "TorrentsCSV"))
+            if (RutrackerScraper(OkHttpClient(), BuildConfig.RUTRACKER_API_KEY).isConfigured) {
+                add("Rutracker")
+            }
+        }
+        assertEquals(expected, names)
+
+        // The two dropped indexes must not sneak back in.
+        assertTrue("names=$names", names.none { it == "BitSearch" || it == "Nyaa" || it == "Rutor" })
+    }
+
+    /**
+     * A provider that cannot possibly succeed must not be registered: unconfigured,
+     * Rutracker throws on every call, which costs a request per search and pushes a
+     * permanent "API key not configured" error into the source-error list.
+     */
+    @Test
+    fun unconfiguredRutrackerIsNotRegistered() {
+        val names = MultiSourceScraper(OkHttpClient())
+            .scrapers
+            .map { it.source.name }
+        if (BuildConfig.RUTRACKER_API_KEY.isBlank()) {
+            assertFalse("names=$names", names.contains("Rutracker"))
+        }
+    }
+
+    @Test
+    fun trimmedSetStaysWithinTheLatencyBudget() {
+        val scraper = MultiSourceScraper(OkHttpClient())
+        // Four per category plus the optional keyed tracker. This is the guardrail that
+        // catches an accidental re-add of a dropped provider.
+        val movies = scraper.eligibleScrapersCount(TorrentSource.Category.MOVIES)
+        val series = scraper.eligibleScrapersCount(TorrentSource.Category.TV_SHOWS)
+        assertTrue("movie providers=$movies", movies <= 5)
+        assertTrue("series providers=$series", series <= 5)
     }
 
     @Test

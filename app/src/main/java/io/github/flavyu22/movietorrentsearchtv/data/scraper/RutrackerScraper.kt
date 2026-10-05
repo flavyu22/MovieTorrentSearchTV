@@ -44,7 +44,12 @@ class RutrackerScraper(
         ),
     )
 
-    private val configured: Boolean = apiKey.isNotBlank()
+    /**
+     * Whether a usable API key was supplied. The app uses this to decide whether to register
+     * the provider at all: an unconfigured instance throws on every call, so registering it
+     * would spend a request and an error-slot per search for a guaranteed failure.
+     */
+    val isConfigured: Boolean = apiKey.isNotBlank()
 
     override suspend fun search(
         query: String,
@@ -59,7 +64,7 @@ class RutrackerScraper(
     private suspend fun fetchSearch(rawQuery: String): List<UnifiedTorrent> {
         val cleaned = sanitizeQuery(rawQuery)
         if (cleaned.isBlank()) return emptyList()
-        if (!configured) throw IOException("${source.name}: API key not configured")
+        if (!isConfigured) throw IOException("${source.name}: API key not configured")
 
         val url = API_URL.toHttpUrlOrNull()?.newBuilder()
             ?.addQueryParameter("method", "search")

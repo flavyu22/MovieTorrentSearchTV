@@ -1,6 +1,35 @@
 # Provideri activi — 19 septembrie 2026
 
-Sunt înregistrate nouă surse: YTS, EZTV, TPB, Solid, TorrentsCSV, BitSearch, Nyaa, Rutor și Rutracker.
+Sunt active cinci surse: YTS, EZTV, TPB, Solid și TorrentsCSV. Rutracker se înregistrează
+doar când `RUTRACKER_API_KEY` este configurată, deci cinci sau șase în funcție de build.
+
+## De ce lista a fost scurtată
+
+Fiecare provider este interogat la fiecare deschidere a ecranului de detalii, o dată pentru
+fiecare variantă de titlu pe care ViewModel-ul o construiește (principal, localizat,
+original). Prin urmare, un provider în plus **multiplică** numărul de cereri concurente, nu
+se adaugă la el. Înainte de această schimbare erau 9 provideri, adică aproximativ 30-36 de
+cereri HTTP concurente la o deschidere.
+
+- **BitSearch** — eliminat pentru lentoare. API-ul public are cotă și limitare de rată,
+  suprapune catalogul lui Solid (deci deduplicarea existentă după hash arunca oricum
+  majoritatea rezultatelor) și era cel mai puțin fiabil contributor, cu 0.85.
+- **Nyaa** — eliminat: index exclusiv pentru anime. Era interogat pentru fiecare film și
+  fiecare serial, returnând nimic pentru marea majoritate, cu rânduri lente și fără peeri
+  activi (proba proprie a raportat 0 seederi).
+- **Rutor** — eliminat: gazda nu mai există. Verificat live pe 2026-10-03,
+  `http://rutor.info/...` răspunde **HTTP 451 Unavailable For Legal Reasons**, iar conexiunea
+  HTTPS este închisă forțat de gazdă la mijlocul handshake-ului TLS. În aplicație fiecare
+  căutare eșua cu „Network error" după ~0,6s, deci cheltuia o cerere și o intrare în lista
+  de erori pentru a nu livra nimic, permanent. Clasa scraperului și testele ei de parser
+  rămân în sursă; doar înregistrarea a dispărut.
+- **Rutracker** — înregistrare condiționată. Fără cheie, arunca `IOException` la fiecare
+  apel, cheltuind o cerere și introducând permanent eroarea „API key not configured" în
+  lista de erori. Clasa scraperului și testele ei sunt păstrate; doar înregistrarea
+  necondiționată a dispărut. `isConfigured` a devenit public pentru asta.
+
+Clasele `BitSearchScraper` și `NyaaScraper` rămân în sursă, împreună cu testele lor, și
+pot fi reintroduse în `defaultScrapers()` dacă situația se schimbă.
 
 ## Surse multi-limbă adăugate
 

@@ -149,6 +149,17 @@ data class AppStrings(
     val magnetLinkCopied: String = "Magnet link copied",
     val sortQuality: String = "Quality",
     val sortDate: String = "Date",
+    /** Leechers count, shown next to the seeders on every magnet row. */
+    val peers: String = "Peers",
+    /** Content description of the release upload-date chip. */
+    val uploadedOn: String = "Uploaded on",
+    /**
+     * Spoken description of a magnet row. Positional placeholders are required here because
+     * the arguments mix [String] and [Int], which a repeated untyped placeholder cannot.
+     */
+    val torrentRowDescription: String = "%1\$s. Quality %2\$s. %3\$s. %4\$d seeds. %5\$d peers.",
+    /** Empty state shown when the quality/language filters exclude every result. */
+    val noResultsForFilter: String = "No results match the active filters.",
 )
 
 // ─── Traduceri ─────────────────────────────────────────────────────────────────
@@ -229,7 +240,7 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         playWith = "Alege playerul:",
         installBitTorrent = "Instalează un client BitTorrent (ex: nPlayer).",
         installPlayer = "Nicio aplicație video găsită. Instalează VLC, MX Player, Nova sau nPlayer.",
-        resultsSummary = "%d rezultate din %d/%d surse (%dms)",
+        resultsSummary = "%d rezultate (%dms)",
         torrserverConnected = "Torrserver: %s",
 
         loginTitle = "Autentificare", username = "Utilizator",
@@ -283,6 +294,9 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         recentSearches = "Căutări recente", clearSearchHistory = "Șterge căutările",
         copyMagnetLink = "Copiază linkul magnet", magnetLinkCopied = "Link magnet copiat",
         sortQuality = "Calitate", sortDate = "Dată",
+        peers = "Leechers", uploadedOn = "Adăugat",
+        torrentRowDescription = "%1\$s. Calitate %2\$s. %3\$s. %4\$d seed-uri. %5\$d leechers.",
+        noResultsForFilter = "Niciun rezultat nu corespunde filtrelor active.",
     ) },
 
     "EN" to lazy { AppStrings(
@@ -326,7 +340,7 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         playWith = "Play with:",
         installBitTorrent = "Install a BitTorrent client (e.g. nPlayer).",
         installPlayer = "No video player found. Install VLC, MX Player, Nova, or nPlayer.",
-        resultsSummary = "%d results from %d/%d sources (%dms)",
+        resultsSummary = "%d results (%dms)",
         torrserverConnected = "Torrserver: %s",
 
         loginTitle = "Login", username = "Username",
@@ -379,6 +393,9 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         recentSearches = "Recent searches", clearSearchHistory = "Clear search history",
         copyMagnetLink = "Copy magnet link", magnetLinkCopied = "Magnet link copied",
         sortQuality = "Quality", sortDate = "Date",
+        peers = "Leechers", uploadedOn = "Uploaded",
+        torrentRowDescription = "%1\$s. Quality %2\$s. %3\$s. %4\$d seeds. %5\$d leechers.",
+        noResultsForFilter = "No results match the active filters.",
     ) },
 
     "IT" to lazy { AppStrings(
@@ -413,7 +430,7 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         playWith = "Riproduci con:",
         installBitTorrent = "Installa un client BitTorrent (es. nPlayer).",
         installPlayer = "Installa un lettore video.",
-        resultsSummary = "%d risultati da %d/%d sorgenti (%dms)",
+        resultsSummary = "%d risultati (%dms)",
         torrserverConnected = "Torrserver: %s",
         loginTitle = "Accesso", username = "Nome utente",
         password = "Password", login = "Accedi",
@@ -462,6 +479,9 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         recentSearches = "Ricerche recenti", clearSearchHistory = "Cancella cronologia ricerche",
         copyMagnetLink = "Copia link magnet", magnetLinkCopied = "Link magnet copiato",
         sortQuality = "Qualità", sortDate = "Data",
+        peers = "Leecher", uploadedOn = "Caricato",
+        torrentRowDescription = "%1\$s. Qualità %2\$s. %3\$s. %4\$d seed. %5\$d leecher.",
+        noResultsForFilter = "Nessun risultato corrisponde ai filtri attivi.",
     ) },
 
     "ES" to lazy { AppStrings(
@@ -496,7 +516,7 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         playWith = "Reproducir con:",
         installBitTorrent = "Instala un cliente BitTorrent (ej. nPlayer).",
         installPlayer = "Instala un reproductor de video.",
-        resultsSummary = "%d resultados de %d/%d fuentes (%dms)",
+        resultsSummary = "%d resultados (%dms)",
         torrserverConnected = "Torrserver: %s",
         loginTitle = "Iniciar sesión", username = "Usuario",
         password = "Contraseña", login = "Entrar",
@@ -545,6 +565,9 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         recentSearches = "Búsquedas recientes", clearSearchHistory = "Borrar historial de búsqueda",
         copyMagnetLink = "Copiar enlace magnet", magnetLinkCopied = "Enlace magnet copiado",
         sortQuality = "Calidad", sortDate = "Fecha",
+        peers = "Leechers", uploadedOn = "Subido",
+        torrentRowDescription = "%1\$s. Calidad %2\$s. %3\$s. %4\$d semillas. %5\$d leechers.",
+        noResultsForFilter = "Ningún resultado coincide con los filtros activos.",
     ) },
 
     "FR" to lazy { AppStrings(
@@ -579,7 +602,7 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         playWith = "Lire avec :",
         installBitTorrent = "Installez un client BitTorrent (ex. nPlayer).",
         installPlayer = "Installez un lecteur vidéo.",
-        resultsSummary = "%d résultats de %d/%d sources (%dms)",
+        resultsSummary = "%d résultats (%dms)",
         torrserverConnected = "Torrserver: %s",
         loginTitle = "Connexion", username = "Utilisateur",
         password = "Mot de passe", login = "Se connecter",
@@ -628,6 +651,9 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         recentSearches = "Recherches récentes", clearSearchHistory = "Effacer l'historique de recherche",
         copyMagnetLink = "Copier le lien magnet", magnetLinkCopied = "Lien magnet copié",
         sortQuality = "Qualité", sortDate = "Date",
+        peers = "Leechers", uploadedOn = "Ajouté",
+        torrentRowDescription = "%1\$s. Qualité %2\$s. %3\$s. %4\$d seeds. %5\$d leechers.",
+        noResultsForFilter = "Aucun résultat ne correspond aux filtres actifs.",
     ) },
 
     "DE" to lazy { AppStrings(
@@ -662,7 +688,7 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         playWith = "Abspielen mit:",
         installBitTorrent = "Installieren Sie einen BitTorrent-Client (z. B. nPlayer).",
         installPlayer = "Installieren Sie einen Videoplayer.",
-        resultsSummary = "%d Ergebnisse von %d/%d Quellen (%dms)",
+        resultsSummary = "%d Ergebnisse (%dms)",
         torrserverConnected = "Torrserver: %s",
         loginTitle = "Anmelden", username = "Benutzername",
         password = "Passwort", login = "Anmelden",
@@ -711,6 +737,9 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         recentSearches = "Letzte Suchen", clearSearchHistory = "Suchverlauf löschen",
         copyMagnetLink = "Magnet-Link kopieren", magnetLinkCopied = "Magnet-Link kopiert",
         sortQuality = "Qualität", sortDate = "Datum",
+        peers = "Leechers", uploadedOn = "Hochgeladen",
+        torrentRowDescription = "%1\$s. Qualität %2\$s. %3\$s. %4\$d Seeder. %5\$d Leecher.",
+        noResultsForFilter = "Keine Ergebnisse entsprechen den aktiven Filtern.",
     ) },
 
     "PT" to lazy { AppStrings(
@@ -745,7 +774,7 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         playWith = "Reproduzir com:",
         installBitTorrent = "Instale um cliente BitTorrent (ex. nPlayer).",
         installPlayer = "Instale um player de vídeo.",
-        resultsSummary = "%d resultados de %d/%d fontes (%dms)",
+        resultsSummary = "%d resultados (%dms)",
         torrserverConnected = "Torrserver: %s",
         loginTitle = "Entrar", username = "Usuário",
         password = "Senha", login = "Entrar",
@@ -794,6 +823,9 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         recentSearches = "Pesquisas recentes", clearSearchHistory = "Limpar histórico de pesquisa",
         copyMagnetLink = "Copiar link magnet", magnetLinkCopied = "Link magnet copiado",
         sortQuality = "Qualidade", sortDate = "Data",
+        peers = "Leechers", uploadedOn = "Enviado",
+        torrentRowDescription = "%1\$s. Qualidade %2\$s. %3\$s. %4\$d seeds. %5\$d leechers.",
+        noResultsForFilter = "Nenhum resultado corresponde aos filtros ativos.",
     ) },
 
     "RU" to lazy { AppStrings(
@@ -828,7 +860,7 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         playWith = "Играть с:",
         installBitTorrent = "Установите BitTorrent-клиент (например, nPlayer).",
         installPlayer = "Установите видеоплеер.",
-        resultsSummary = "%d результатов из %d/%d источников (%d мс)",
+        resultsSummary = "%d результатов (%d мс)",
         torrserverConnected = "Torrserver: %s",
         loginTitle = "Вход", username = "Имя пользователя",
         password = "Пароль", login = "Войти",
@@ -877,6 +909,9 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         recentSearches = "Недавние запросы", clearSearchHistory = "Очистить историю поиска",
         copyMagnetLink = "Копировать magnet-ссылку", magnetLinkCopied = "Magnet-ссылка скопирована",
         sortQuality = "Качество", sortDate = "Дата",
+        peers = "Личеры", uploadedOn = "Добавлено",
+        torrentRowDescription = "%1\$s. Качество %2\$s. %3\$s. %4\$d сидов. %5\$d личеров.",
+        noResultsForFilter = "Нет результатов, подходящих под активные фильтры.",
     ) },
 
     "EL" to lazy { AppStrings(
@@ -911,7 +946,7 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         playWith = "Αναπαραγωγή με:",
         installBitTorrent = "Εγκαταστήστε έναν BitTorrent client (π.χ. nPlayer).",
         installPlayer = "Εγκαταστήστε ένα πρόγραμμα αναπαραγωγής βίντεο.",
-        resultsSummary = "%d αποτελέσματα από %d/%d πηγές (%dms)",
+        resultsSummary = "%d αποτελέσματα (%dms)",
         torrserverConnected = "Τοrrserver: %s",
         loginTitle = "Σύνδεση", username = "Όνομα χρήστη",
         password = "Κωδικός", login = "Είσοδος",
@@ -960,5 +995,8 @@ val Translations: Map<String, AppStrings> = LazyTranslationMap(mapOf(
         recentSearches = "Πρόσφατες αναζητήσεις", clearSearchHistory = "Εκκαθάριση ιστορικού αναζήτησης",
         copyMagnetLink = "Αντιγραφή συνδέσμου magnet", magnetLinkCopied = "Ο σύνδεσμος magnet αντιγράφηκε",
         sortQuality = "Ποιότητα", sortDate = "Ημερομηνία",
+        peers = "Leechers", uploadedOn = "Μεταφορτώθηκε",
+        torrentRowDescription = "%1\$s. Ποιότητα %2\$s. %3\$s. %4\$d seeders. %5\$d leechers.",
+        noResultsForFilter = "Κανένα αποτέλεσμα δεν ταιριάζει με τα ενεργά φίλτρα.",
     ) },
 ))

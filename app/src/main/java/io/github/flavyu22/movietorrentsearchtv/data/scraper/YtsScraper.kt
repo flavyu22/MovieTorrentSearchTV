@@ -6,6 +6,7 @@ import io.github.flavyu22.movietorrentsearchtv.config.RemoteHosts
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import kotlinx.coroutines.CancellationException
 import org.json.JSONObject
 import java.io.IOException
 import java.net.URLEncoder
@@ -37,11 +38,41 @@ class YtsScraper(private val client: OkHttpClient) : TorrentScraper {
 
     private suspend fun searchDomains(query: String): List<UnifiedTorrent> {
         if (query.isBlank()) return emptyList()
+        // YTS's query_term degrades when the term ends in a 4-digit year: the endpoint
+        // still answers HTTP 200 with status="ok" and a non-zero movie_count, but omits
+        // the "movies" array entirely (verified live 2026-10-03 across every mirror).
+        // Because the details screen appends the year to the title, this made YTS look
+        // like a dead provider on most titles. Retry the bare title before giving up so
+        // the year-appended query still resolves to real rows.
+        val attempts = buildList {
+            add(query)
+            withoutTrailingYear(query)?.let { add(it) }
+        }
+        var lastFailure: Throwable? = null
+        for (attempt in attempts) {
+            try {
+                val found = fetchFromMirrors(attempt)
+                if (found.isNotEmpty()) return found
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Exception) {
+                lastFailure = failure
+            }
+        }
+        if (lastFailure != null) throw lastFailure
+        return emptyList()
+    }
+
+    private suspend fun fetchFromMirrors(query: String): List<UnifiedTorrent> {
         val encodedQuery = URLEncoder.encode(query, Charsets.UTF_8.name()).replace("+", "%20")
         return firstSuccessfulMirror(DOMAINS.map { domain ->
             suspend { fetchYtsJson("$domain/api/v2/list_movies.json?query_term=$encodedQuery&limit=50") }
         })
     }
+
+    /** `"Dune Part Two 2024"` -> `"Dune Part Two"`; null when the query has no trailing year. */
+    private fun withoutTrailingYear(query: String): String? =
+        TRAILING_YEAR.replace(query, "").trim().takeIf { it.isNotBlank() && it != query }
 
     private suspend fun fetchYtsJson(url: String): List<UnifiedTorrent> {
         val body = client.awaitBody(Request.Builder().url(url).get().build())
@@ -56,8 +87,11 @@ class YtsScraper(private val client: OkHttpClient) : TorrentScraper {
         val data = root.optJSONObject("data") ?: throw IOException("YTS response is missing data")
         val movies = data.optJSONArray("movies")
         if (movies == null) {
-            if (data.optInt("movie_count", 0) == 0) return emptyList()
-            throw IOException("YTS response is missing movies")
+            // A 200/ok response that omits "movies" is YTS declining to enumerate matches
+            // (it happens for query terms ending in a year). It is a valid empty page, not
+            // a transport or protocol failure, so report "no rows" and let the caller retry
+            // with a broader term instead of surfacing a bogus network error.
+            return emptyList()
         }
         val results = ArrayList<UnifiedTorrent>(
             minOf(movies.length(), MAX_SCRAPER_RESULTS) * 2,
@@ -136,5 +170,6 @@ class YtsScraper(private val client: OkHttpClient) : TorrentScraper {
         val DOMAINS = RemoteHosts.ytsMirrorBaseUrls
         val TRUSTED_LINK_HOSTS = DOMAINS.mapNotNull { it.toHttpUrlOrNull()?.host }.toSet()
         val INFO_HASH = Regex("[a-f0-9]{40}", RegexOption.IGNORE_CASE)
+        val TRAILING_YEAR = Regex("\\s+\\d{4}$")
     }
 }

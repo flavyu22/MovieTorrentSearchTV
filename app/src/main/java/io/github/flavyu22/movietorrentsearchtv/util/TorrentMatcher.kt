@@ -33,19 +33,36 @@ object TorrentMatcher {
     fun isTorrentRelevant(torrent: UnifiedTorrent, movie: Movie): Boolean {
         // Every input which can affect the decision belongs in the key. In particular,
         // hashes are reused by aggregators while their title/source metadata may change.
-        val cacheKey = listOf(
-            torrent.infoHash,
-            torrent.title,
-            torrent.magnetUrl,
-            torrent.source,
-            torrent.isSeries,
-            movie.id,
-            movie.title,
-            movie.originalTitle,
-            movie.localizedTitle,
-            movie.year,
-            movie.isSeries
-        ).joinToString("\u0000") { it?.toString().orEmpty().lowercase(Locale.ROOT) }
+        //
+        // The key is built with a StringBuilder instead of
+        // `listOf(...).joinToString("\u0000") { it.lowercase() }`: the previous form
+        // allocated an 11-element list plus 11 lower-cased throw-away strings for EVERY
+        // torrent examined, which dominated the matching pass across a full result set.
+        // Only fields that can differ in case or content take part, and the cheap
+        // identity fields (hash/id) are appended without any transformation.
+        val cacheKey = StringBuilder(torrent.infoHash.length + movie.title.orEmpty().length + 96)
+            .append(torrent.infoHash)
+            .append('\u0000')
+            .append(movie.id)
+            .append('\u0000')
+            .append(torrent.title)
+            .append('\u0000')
+            .append(torrent.magnetUrl)
+            .append('\u0000')
+            .append(torrent.source)
+            .append('\u0000')
+            .append(movie.title)
+            .append('\u0000')
+            .append(movie.originalTitle)
+            .append('\u0000')
+            .append(movie.localizedTitle)
+            .append('\u0000')
+            .append(movie.year)
+            .append('\u0000')
+            .append(movie.isSeries)
+            .append('\u0000')
+            .append(torrent.isSeries)
+            .toString()
         relevanceCache[cacheKey]?.let { return it }
 
         val result = calculateRelevance(torrent, movie)
@@ -230,16 +247,58 @@ object TorrentMatcher {
         return toIntOrNull()?.takeIf { it in MIN_RELEASE_YEAR..(currentYear() + 2) }
     }
 
-    private fun tokenize(value: String): List<String> = TOKEN_REGEX.findAll(normalizeText(value))
-        .map { it.value }
-        .toList()
+    /**
+     * Tokenization runs [java.text.Normalizer] plus a regex scan, and it is invoked for
+     * every torrent title *and* every catalogue title variant. Because the catalogue
+     * titles are identical for every row of a search, the same handful of strings were
+     * re-normalized thousands of times per search. Results are immutable and therefore
+     * safe to share.
+     */
+    private val tokenCache = ConcurrentHashMap<String, List<String>>()
+
+    private fun tokenize(value: String): List<String> {
+        if (value.isEmpty()) return emptyList()
+        tokenCache[value]?.let { return it }
+        val tokens = TOKEN_REGEX.findAll(normalizeText(value))
+            .map { it.value }
+            .toList()
+        if (tokenCache.size >= MAX_TOKEN_CACHE_ENTRIES) tokenCache.clear()
+        tokenCache[value] = tokens
+        return tokens
+    }
 
     private fun normalizeText(value: String): String = Normalizer
         .normalize(value, Normalizer.Form.NFD)
         .replace(COMBINING_MARKS, "")
         .lowercase(Locale.ROOT)
 
-    private fun currentYear(): Int = Calendar.getInstance().get(Calendar.YEAR)
+    /**
+     * [Calendar.getInstance] reads the system clock and allocates a calendar object; the
+     * previous implementation called it once per release-year token per torrent. The year
+     * only changes once every few hours at most, so it is refreshed on a timer instead.
+     */
+    private fun currentYear(): Int {
+        val now = System.currentTimeMillis()
+        val cached = cachedYear
+        if (cached != 0 && now - cachedYearAtMs < CURRENT_YEAR_TTL_MS) return cached
+        return synchronized(this) {
+            val recheck = System.currentTimeMillis()
+            if (cachedYear != 0 && recheck - cachedYearAtMs < CURRENT_YEAR_TTL_MS) {
+                cachedYear
+            } else {
+                Calendar.getInstance().get(Calendar.YEAR).also {
+                    cachedYear = it
+                    cachedYearAtMs = recheck
+                }
+            }
+        }
+    }
+
+    @Volatile
+    private var cachedYear: Int = 0
+
+    @Volatile
+    private var cachedYearAtMs: Long = 0L
 
     private data class TitleMatch(
         val meaningfulTarget: List<String>,
@@ -274,4 +333,6 @@ object TorrentMatcher {
     )
     private const val MIN_RELEASE_YEAR = 1870
     private const val MAX_CACHE_ENTRIES = 2_000
+    private const val MAX_TOKEN_CACHE_ENTRIES = 4_000
+    private const val CURRENT_YEAR_TTL_MS = 6L * 60L * 60L * 1_000L
 }

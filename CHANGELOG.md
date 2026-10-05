@@ -1,5 +1,141 @@
 # Changelog
 
+## Unreleased — 2026-10-04
+
+### Changed
+
+- **The active provider set was trimmed from nine to six** to cut movie-details latency. Every
+  provider is queried on each detail screen once per title variant the ViewModel builds
+  (primary, localized, original), so an extra provider *multiplies* the concurrent request
+  count rather than adding one — the previous set cost roughly 30-36 concurrent HTTP requests
+  per screen. `BitSearch` was dropped (public quota and rate limits, its catalogue overlaps
+  Solid so the existing per-infohash dedup discarded most of it anyway, lowest reliability at
+  0.85) and `Nyaa` was dropped (anime-only index, queried for every film and series, mostly
+  returning nothing, and its own probe reported 0 seeders). Films now query YTS, TPB, Solid
+  and TorrentsCSV; series query EZTV, TPB, Solid and TorrentsCSV.
+- **`Rutor` was removed because its host is gone.** Verified live 2026-10-03:
+  `http://rutor.info/...` returns **HTTP 451 Unavailable For Legal Reasons** and the HTTPS
+  connection is forcibly closed by the remote host mid-TLS-handshake. In-app it failed
+  every search with "Network error" after ~0.6s, spending a request and a permanent
+  source-error entry to deliver nothing. `RutorScraper` and its parser tests are kept in the
+  tree, so it can be restored if the index ever returns.
+- **Every remaining provider was verified to answer a live query** on 2026-10-03: YTS
+  (`/api/v2/list_movies.json`, 1 match), EZTV (`/api/get-torrents`, 30 torrents),
+  TPB/apibay (`/q.php`, many rows with valid infohashes), Solid (40 `/torrent/` links in
+  the search HTML) and TorrentsCSV (`/service/search`, 25 rows).
+- `Rutracker` is now registered **only when `RUTRACKER_API_KEY` is configured**. Unconfigured it
+  threw on every call, which spent a request per search and pushed a permanent "API key not
+  configured" entry into the source-error list. `RutrackerScraper.isConfigured` was made public
+  so the registration can be conditional. The scraper class and its tests are unchanged and the
+  provider comes back automatically once a key is supplied.
+- Audit M1/M3 (build hygiene): the two remaining compiler warnings were removed, so
+  `compileDirectDebugKotlin` is warning-free and the OPTIMIZATION_REPORT's "zero
+  warnings" claim holds again. `ScraperUtils.formatTwoDecimals` now uses
+  `roundToLong()` instead of `Math.round(value * 100).toLong()` (both round half-up,
+  and torrent sizes are non-negative, so the rendered size is unchanged), and
+  `YtsScraper.withoutTrailingYear` dropped two safe calls on a non-null
+  `String.replace` result. A new `ScraperUtilsTest` case pins the two-decimal output,
+  the zero-padded fraction and every unit threshold so the rounding change is locked.
+- Audit H4: the stale build logs that had accumulated in the project root
+  (`apk-out.log`, `test-out.log`, `e2.log`, `t2.log` and their `-err` counterparts)
+  were deleted. `package-source.py` already excluded `*.log`, but they were
+  polluting the working copy.
+- Audit guard fix: the KDoc in `MultiSourceScraper` documenting the Rutor removal
+  spelled out its URL with the `http` scheme, which `verify-project.py` reads as a
+  cleartext-traffic violation in production source. The host is now named without
+  the scheme, so the guard no longer fires on a comment while keeping its severity
+  for real endpoints.
+- `BitSearchScraper` and `NyaaScraper` remain in the source tree with their tests, so either can
+  be restored by adding one line back to `defaultScrapers()`.
+- Removed the duplicated empty-result branch: `isEmptyResult` and `!isLoading` rendered
+  byte-identical markup. The now-unused `isEmptyResult` parameter was dropped from the results
+  column.
+
+### Fixed
+
+- **The published `update.json` shipped a stale SHA-256, which broke the in-app updater for
+  every Direct-flavour install.** The manifest committed at the repository root carried the
+  digest of a superseded build (`8c7eed3c…`) while the APK actually attached to the release
+  hashes to `dd77ec15…`. `AppViewModel.checkForUpdates` correctly rejects a manifest whose
+  digest does not match the downloaded asset, so a user polling for updates would download
+  the new APK and then discard it — surfacing as an updater that never succeeds, with no
+  actionable error. The manifest now carries the digest and byte length of the APK the
+  release really serves. `verify-project.py` gained a guard that cross-checks the committed
+  manifest against the staged release directory (sha256 *and* `sizeBytes`) and fails the
+  build on a mismatch, so the two can no longer drift apart unnoticed. The script also now
+  fails when the root manifest is missing entirely, which is the other way this silently
+  breaks: the raw URL would 404 and every check would fail closed.
+- **`.gitignore` no longer leaks machine-specific files into the repository.** The IDE
+  project directory (`.idea/`, including per-developer run configurations, Gradle sync state
+  and the deployment-target selector) and CPython bytecode caches (`__pycache__/`, `*.pyc`)
+  are now ignored in full. Previously only five individual `.idea` paths were listed, so
+  every new IDE version added another tracked-but-machine-specific file, and running the
+  `scripts/` helpers left `.pyc` files showing up as untracked noise.
+- **`YtsScraper` now recovers from YTS's year-suffixed-query degradation.** When `query_term`
+  ends in a 4-digit year the endpoint answers **HTTP 200 with `status="ok"` and a non-zero
+  `movie_count`, but omits the `movies` array entirely** (verified live 2026-10-03 on every
+  configured mirror). The movie-details screen appends the year to the title it queries with,
+  so YTS silently looked like a dead provider on most titles. Two changes:
+  - `parseYtsResponse` treats a missing `movies` array as a **valid empty page** instead of
+    throwing. It is not a transport or protocol failure, and reporting it as a network error
+    put a bogus "Network error" entry in the source-error list. Genuine failures still
+    surface: a non-`ok` `status`, a missing `data` object and malformed JSON all still throw
+    `IOException`.
+  - `searchDomains` retries once **without the trailing year** when the first attempt came
+    back empty (`"Dune Part Two 2024"` → `"Dune Part Two"`), so the year-appended query
+    resolves to real rows. The retry is bounded to two attempts, is skipped entirely when the
+    first query already returned rows, and never rewrites an IMDb-id lookup
+    (`searchByImdb` still sends `tt15239678` verbatim).
+- Movie details: the trailing **copy magnet** and **open source page** controls are now real
+  focus targets. They were `Box(Modifier.clickable)` nodes whose icon tint was driven by the
+  *row's* focus state, so moving D-pad focus onto them turned the row dark while the button
+  itself never highlighted — focus landed on an invisible control and the selected action could
+  not be identified. Each button now owns its `MutableInteractionSource` and paints a white disc
+  with a dark glyph when focused (no animation, so no extra per-row interpolator on entry-level
+  TVs).
+- Movie details: the row no longer sets `semantics(mergeDescendants = true)`, which folded the two
+  action buttons into the row's own description and made them unreachable for a screen reader.
+  The spoken description moved to the text block, leaving the actions as separate buttons.
+- Movie details: focus recovery after a search no longer parks on the back button when the
+  active filters hid every result. That case renders the filter-reset state, whose only button
+  now receives focus.
+- Movie details: the sort option is resolved by index instead of by comparing localized label
+  strings. Two options sharing a label in some translation previously selected the wrong order,
+  and the label list was rebuilt on every recomposition, re-triggering the open menu's
+  scroll-to-item effect on each frame.
+- Movie details: the trailing **copy magnet** and **open source page** controls were in fact
+  unreachable with a D-pad, so the fix that gave them their own focus indicator never took effect
+  in practice. Each action already owned a `MutableInteractionSource` and painted its own white
+  disc, but both were children of the clickable row, and Compose's directional focus search only
+  offers focus to a target lying outside the focused node's bounds — RIGHT therefore had no
+  destination and focus stayed on the row. Confirmed on the emulator: the node reported as
+  `focused` kept the row's bounds across three RIGHT presses, while DOWN and LEFT moved normally.
+  The row is now a non-clickable visual `Surface` and the play action moved onto the text block, so
+  the actions sit outside the focus target's bounds. D-pad-right now reaches each action, LEFT
+  returns to the row, and the pill keeps its shape, border and colours.
+
+### Added
+
+- Movie details now surfaces release data that every scraper already parsed but this screen
+  discarded: **peers (leechers)**, **upload day** (`yyyy-MM-dd`, UTC) and **audio language**.
+  Leechers matter because a release with no seeders can still be playable; the day separates a
+  fresh 2160p WEB-DL from a stale CAM rip at a glance.
+- Movie details shows a result-provenance line above the list — results and the search
+  duration — plus a `+N` count of rows hidden by the active filters. It reuses
+  `resultsSummary`, which was already translated into all nine supported locales but was
+  never rendered. The line's source count (`3/8 sources`) was subsequently removed: the
+  provider total is an implementation detail of `defaultScrapers()`, it changed with every
+  provider trim, and reporting how many indexes were configured told the user nothing they
+  could act on. The two `%d` placeholders were dropped from `resultsSummary` in all nine
+  locales, and the now-unused `SearchStats.totalSources`/`activeSources` fields were removed.
+- New distinct empty state when sources answered but the quality/language filters excluded every
+  row: it explains the filter and offers an **All** reset. It previously blamed the providers with
+  "no sources found", and its retry button re-ran the same search with the same filters, which
+  could not clear the state.
+- `peers`, `uploadedOn`, `torrentRowDescription` and `noResultsForFilter` added to `AppStrings`
+  with translations for all nine locales (RO, EN, IT, ES, FR, DE, PT, RU, EL). The row's spoken
+  description uses positional placeholders because its arguments mix `String` and `Int`.
+
 ## Unreleased — 2026-09-19
 
 ### Added
@@ -57,9 +193,10 @@
 
 ### Fixed
 
-- Audit C1: `verify-project.py` no longer contradicts the actual toolchain; AGP
-  9.5.0-alpha03 is pinned explicitly as a documented derogation (Gradle wrapper pin
-  moved to 9.7.1 with mandatory checksum).
+- Audit C1: `verify-project.py` no longer contradicts the actual toolchain; the AGP pin and the
+  Gradle wrapper pin (9.7.1, mandatory checksum) are asserted against the versions actually
+  declared. Superseded further down this release by the migration from the `9.5.0-alpha03`
+  derogation to stable AGP 9.4.0.
 - Audit C2: the `MainActivity` guardrail now checks the intentional plain
   `lifecycleScope` collection of `uiEvents` (the two-minute auto-exit must fire while
   the activity is STOPPED behind the external player) instead of demanding

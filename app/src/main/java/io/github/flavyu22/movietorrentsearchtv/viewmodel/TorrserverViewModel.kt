@@ -2,6 +2,7 @@ package io.github.flavyu22.movietorrentsearchtv.viewmodel
 
 import android.app.Application
 import android.content.Context
+import androidx.core.content.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.flavyu22.movietorrentsearchtv.model.DiscoveredServer
@@ -62,9 +63,13 @@ class TorrserverViewModel(application: Application) : AndroidViewModel(applicati
         val saved = preferences.getString(ADDRESS_KEY, "").orEmpty()
         val normalized = repository.normalizeAddress(saved).orEmpty()
         if (saved.isNotBlank() && normalized.isBlank()) {
-            preferences.edit().remove(ADDRESS_KEY)
-                .putLong(SELECTION_REVISION_KEY,
-                    preferences.getLong(SELECTION_REVISION_KEY, 0L) + 1L).apply()
+            preferences.edit {
+                remove(ADDRESS_KEY)
+                putLong(
+                    SELECTION_REVISION_KEY,
+                    preferences.getLong(SELECTION_REVISION_KEY, 0L) + 1L,
+                )
+            }
         }
         _config.value = TorrserverConfig(primaryAddress = normalized)
         _manualAddress.value = normalized
@@ -94,9 +99,13 @@ class TorrserverViewModel(application: Application) : AndroidViewModel(applicati
         connectionJob?.cancel()
         connectionJob = null
         _connectionState.value = ConnectionState.Disconnected
-        preferences.edit().putString(ADDRESS_KEY, normalized)
-            .putLong(SELECTION_REVISION_KEY,
-                preferences.getLong(SELECTION_REVISION_KEY, 0L) + 1L).apply()
+        preferences.edit {
+            putString(ADDRESS_KEY, normalized)
+            putLong(
+                SELECTION_REVISION_KEY,
+                preferences.getLong(SELECTION_REVISION_KEY, 0L) + 1L,
+            )
+        }
         _manualAddress.value = normalized
         _config.value = _config.value.copy(primaryAddress = normalized, lastError = null)
         _issue.value = null
@@ -107,9 +116,13 @@ class TorrserverViewModel(application: Application) : AndroidViewModel(applicati
         connectionGeneration.incrementAndGet()
         connectionJob?.cancel()
         connectionJob = null
-        preferences.edit().remove(ADDRESS_KEY)
-            .putLong(SELECTION_REVISION_KEY,
-                preferences.getLong(SELECTION_REVISION_KEY, 0L) + 1L).apply()
+        preferences.edit {
+            remove(ADDRESS_KEY)
+            putLong(
+                SELECTION_REVISION_KEY,
+                preferences.getLong(SELECTION_REVISION_KEY, 0L) + 1L,
+            )
+        }
         _manualAddress.value = ""
         _config.value = TorrserverConfig()
         _connectionState.value = ConnectionState.Disconnected
@@ -224,7 +237,8 @@ class TorrserverViewModel(application: Application) : AndroidViewModel(applicati
         scanJob?.cancel()
         connectionJob?.cancel()
         repository.destroy()
-        super.onCleared()
+        // No super.onCleared(): ViewModel.onCleared() is an empty no-op, and calling it
+        // only produced an "EmptySuperCall" compiler warning.
     }
 
     private companion object {

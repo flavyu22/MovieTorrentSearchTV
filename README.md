@@ -1,4 +1,4 @@
-> Current provider selection: YTS, EZTV, TPB, Solid, TorrentsCSV, BitSearch, Nyaa (anime), Rutor and Rutracker (Russian). See PROVIDERS_CURRENT_RO.md for additions, removals and validation.
+> Current provider selection: YTS, EZTV, TPB, Solid, TorrentsCSV, plus Rutracker when `RUTRACKER_API_KEY` is configured. BitSearch, Nyaa and Rutor were removed — Rutor's host is gone (HTTP 451). See PROVIDERS_CURRENT_RO.md for additions, removals and validation.
 
 # MovieTorrentSearchTV 2.1.0
 

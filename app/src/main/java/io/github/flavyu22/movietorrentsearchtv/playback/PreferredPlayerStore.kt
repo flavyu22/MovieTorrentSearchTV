@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.IntentCompat
+import androidx.core.content.edit
 
 /** Persists the exact video-player or magnet handler activity selected from the Android chooser. */
 object PreferredPlayerStore {
@@ -29,21 +30,25 @@ object PreferredPlayerStore {
 
     fun save(context: Context, component: ComponentName, type: String) {
         val key = if (type == TYPE_MAGNET) PREFERRED_MAGNET_KEY else PREFERRED_VIDEO_KEY
-        preferences(context)
-            .edit()
-            .putString(key, component.flattenToString())
-            .commit()
+        preferences(context).edit {
+            putString(key, component.flattenToString())
+            // commit() (not apply()) is deliberate: this runs from a BroadcastReceiver, and an
+            // in-flight apply() write can be lost if the process is killed right after onReceive
+            // returns, which would silently drop the user's player selection.
+            commit()
+        }
     }
 
     fun clear(context: Context, type: String? = null) {
-        val editor = preferences(context).edit()
-        if (type == null) {
-            editor.remove(PREFERRED_VIDEO_KEY).remove(PREFERRED_MAGNET_KEY)
-        } else {
-            val key = if (type == TYPE_MAGNET) PREFERRED_MAGNET_KEY else PREFERRED_VIDEO_KEY
-            editor.remove(key)
+        preferences(context).edit {
+            if (type == null) {
+                remove(PREFERRED_VIDEO_KEY)
+                remove(PREFERRED_MAGNET_KEY)
+            } else {
+                val key = if (type == TYPE_MAGNET) PREFERRED_MAGNET_KEY else PREFERRED_VIDEO_KEY
+                remove(key)
+            }
         }
-        editor.apply()
     }
 
     private fun preferences(context: Context) = context.applicationContext

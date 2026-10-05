@@ -246,7 +246,13 @@ fun MovieSearchApp(
         ) {
             HomeHeader(
                 viewModel = viewModel,
-                uiState = uiState,
+                searchQuery = uiState.searchQuery,
+                selectedGenre = uiState.selectedGenre,
+                selectedYear = uiState.selectedYear,
+                selectedQuality = uiState.selectedQuality,
+                selectedRating = uiState.selectedRating,
+                isHistoryMode = uiState.isHistoryMode,
+                isFavoritesMode = uiState.isFavoritesMode,
                 s = s,
                 langCode = currentLanguageCode,
                 onLanguageChange = onLanguageChange,
@@ -461,7 +467,7 @@ private fun MovieGrid(
         val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager
         manager?.isLowRamDevice == true || (manager?.memoryClass ?: 256) <= 128
     }
-    val preloadAhead = if (isLowRamDevice) 3 else 7
+    val preloadAhead = if (isLowRamDevice) 0 else 4
     val posterWidthPx = if (isLowRamDevice) 220 else 300
     val posterHeightPx = if (isLowRamDevice) 330 else 450
     val imageLoader = remember(context) { context.imageLoader }
@@ -476,6 +482,12 @@ private fun MovieGrid(
         posterHeightPx,
     ) {
         if (isLoading || error || movies.isEmpty()) return@LaunchedEffect
+
+        // Prefetching competes with the actually-visible cards for the same limited
+        // image dispatcher (see MovieTorrentApplication: 4 fetches / 2 decodes). On a
+        // low-RAM TV the previous 3-item window meant speculative decodes regularly
+        // delayed the poster the user was focusing on, so prefetch is disabled there.
+        if (preloadAhead <= 0) return@LaunchedEffect
 
         val requestedPosters = HashSet<String>()
         snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
@@ -583,11 +595,15 @@ private fun MovieGrid(
                     key = { it.id },
                     contentType = { "movie" },
                 ) { movie ->
+                    // Stable per-item focus callback: a lambda allocated inside the item
+                    // scope is a new instance on every recomposition of the grid, which
+                    // prevents the card from ever being skipped.
+                    val cardOnFocused = remember(movie.id) { { onMovieFocused(movie) } }
                     NetflixMovieCard(
                         movie = movie,
                         s = s,
                         onMovieClick = onMovieClick,
-                        onFocused = { onMovieFocused(movie) },
+                        onFocused = cardOnFocused,
                         isTargetFocus = movie.id == focusTargetMovieId,
                         posterWidthPx = posterWidthPx,
                         posterHeightPx = posterHeightPx,
@@ -664,11 +680,17 @@ fun NetflixMovieCard(
         }?.quality
     }
 
+    // Stable lambdas: a fresh lambda instance on every recomposition makes this card
+    // unskippable and forces its whole subtree (Surface + AsyncImage + semantics) to
+    // re-run whenever an unrelated sibling in the grid changes state.
+    val stableOnClick = remember(movie.id, onMovieClick) { { onMovieClick(movie) } }
+    val stableOnFocused = remember(movie.id, onFocused) { onFocused }
+
     MoviePosterCard(
         title = movie.title,
         imageRequest = imageRequest,
         isFocused = isFocused,
-        scale = { 1f },
+        scale = 1f,
         isSeries = movie.isSeries,
         label = if (movie.isSeries) s.seriesLabel else s.movieLabel,
         year = movie.year?.toString(),
@@ -676,11 +698,11 @@ fun NetflixMovieCard(
         quality = quality,
         fallbackTitle = s.genericMovie,
         interactionSource = interactionSource,
-        onClick = { onMovieClick(movie) },
+        onClick = stableOnClick,
         modifier = Modifier
             .focusRequester(focusRequester)
             .onFocusChanged { focusState ->
-                if (focusState.isFocused) onFocused()
+                if (focusState.isFocused) stableOnFocused()
             }
     )
 }
@@ -710,7 +732,13 @@ private fun PaginationRow(
 @Composable
 private fun HomeHeader(
     viewModel: MovieViewModel,
-    uiState: MovieViewModel.MovieUiState,
+    searchQuery: String,
+    selectedGenre: String,
+    selectedYear: String,
+    selectedQuality: String,
+    selectedRating: String,
+    isHistoryMode: Boolean,
+    isFavoritesMode: Boolean,
     s: AppStrings,
     langCode: String,
     onLanguageChange: (String) -> Unit,
@@ -732,9 +760,9 @@ private fun HomeHeader(
     val context = LocalContext.current
     val actionErrorFocus = remember { FocusRequester() }
 
-    // FIX #1: citire directă din uiState parsat, fără derivedStateOf
-    val isHistoryMode = uiState.isHistoryMode
-    val isFavoritesMode = uiState.isFavoritesMode
+    // Filters are passed in as plain values rather than the whole MovieUiState: the state
+    // object carries the full movie list, so comparing it on every recomposition walked
+    // all ~49 rows (18 fields each) even though the header only reads these few fields.
     val isCollectionMode = isHistoryMode || isFavoritesMode
 
     val voiceLauncher = rememberLauncherForActivityResult(
@@ -745,10 +773,10 @@ private fun HomeHeader(
             if (!spoken.isNullOrEmpty()) {
                 viewModel.searchMovies(
                     spoken,
-                    uiState.selectedGenre,
-                    uiState.selectedYear,
-                    uiState.selectedQuality,
-                    uiState.selectedRating
+                    selectedGenre,
+                    selectedYear,
+                    selectedQuality,
+                    selectedRating
                 )
             }
         }
@@ -833,12 +861,12 @@ private fun HomeHeader(
 
             // FIX #5: FilterLists.GENRES în loc de GENRES_LIST top-level
             FilterButton(
-                label = if (uiState.selectedGenre == "All") s.genres else uiState.selectedGenre,
-                active = uiState.selectedGenre != "All",
+                label = if (selectedGenre == "All") s.genres else selectedGenre,
+                active = selectedGenre != "All",
                 expanded = showGenre,
                 items = FilterLists.GENRES,
                 itemLabel = { item -> if (item == "All") s.allFilter else item },
-                selectedItem = uiState.selectedGenre,
+                selectedItem = selectedGenre,
                 onExpand = {
                     showGenre = true; showMenu = false
                     showLangMenu = false; showYear = false; showQuality = false; showRating = false
@@ -846,18 +874,18 @@ private fun HomeHeader(
                 onDismiss = { showGenre = false },
                 onSelect = { genre ->
                     showGenre = false
-                    viewModel.searchMovies(uiState.searchQuery, genre, uiState.selectedYear, uiState.selectedQuality, uiState.selectedRating)
+                    viewModel.searchMovies(searchQuery, genre, selectedYear, selectedQuality, selectedRating)
                 },
             )
             Spacer(Modifier.width(12.dp))
 
             FilterButton(
-                label = if (uiState.selectedYear == "All") s.years else uiState.selectedYear,
-                active = uiState.selectedYear != "All",
+                label = if (selectedYear == "All") s.years else selectedYear,
+                active = selectedYear != "All",
                 expanded = showYear,
                 items = FilterLists.YEARS,
                 itemLabel = { item -> if (item == "All") s.allFilter else item },
-                selectedItem = uiState.selectedYear,
+                selectedItem = selectedYear,
                 onExpand = {
                     showYear = true; showMenu = false
                     showLangMenu = false; showGenre = false; showQuality = false; showRating = false
@@ -865,18 +893,18 @@ private fun HomeHeader(
                 onDismiss = { showYear = false },
                 onSelect = { year ->
                     showYear = false
-                    viewModel.searchMovies(uiState.searchQuery, uiState.selectedGenre, year, uiState.selectedQuality, uiState.selectedRating)
+                    viewModel.searchMovies(searchQuery, selectedGenre, year, selectedQuality, selectedRating)
                 },
             )
             Spacer(Modifier.width(12.dp))
 
             FilterButton(
-                label = if (uiState.selectedQuality == "All") s.quality else uiState.selectedQuality,
-                active = uiState.selectedQuality != "All",
+                label = if (selectedQuality == "All") s.quality else selectedQuality,
+                active = selectedQuality != "All",
                 expanded = showQuality,
                 items = FilterLists.QUALITIES,
                 itemLabel = { item -> if (item == "All") s.allFilter else item },
-                selectedItem = uiState.selectedQuality,
+                selectedItem = selectedQuality,
                 onExpand = {
                     showQuality = true; showMenu = false
                     showLangMenu = false; showGenre = false; showYear = false; showRating = false
@@ -884,18 +912,18 @@ private fun HomeHeader(
                 onDismiss = { showQuality = false },
                 onSelect = { q ->
                     showQuality = false
-                    viewModel.searchMovies(uiState.searchQuery, uiState.selectedGenre, uiState.selectedYear, q, uiState.selectedRating)
+                    viewModel.searchMovies(searchQuery, selectedGenre, selectedYear, q, selectedRating)
                 },
             )
             Spacer(Modifier.width(12.dp))
 
             FilterButton(
-                label = if (uiState.selectedRating == "All") s.rating else uiState.selectedRating,
-                active = uiState.selectedRating != "All",
+                label = if (selectedRating == "All") s.rating else selectedRating,
+                active = selectedRating != "All",
                 expanded = showRating,
                 items = FilterLists.RATINGS,
                 itemLabel = { item -> if (item == "All") s.allFilter else item },
-                selectedItem = uiState.selectedRating,
+                selectedItem = selectedRating,
                 onExpand = {
                     showRating = true; showMenu = false
                     showLangMenu = false; showGenre = false; showYear = false; showQuality = false
@@ -903,7 +931,7 @@ private fun HomeHeader(
                 onDismiss = { showRating = false },
                 onSelect = { r ->
                     showRating = false
-                    viewModel.searchMovies(uiState.searchQuery, uiState.selectedGenre, uiState.selectedYear, uiState.selectedQuality, r)
+                    viewModel.searchMovies(searchQuery, selectedGenre, selectedYear, selectedQuality, r)
                 },
             )
         } else {
@@ -949,7 +977,7 @@ private fun HomeHeader(
         Spacer(Modifier.width(16.dp))
 
         OutlinedTextField(
-            value = uiState.searchQuery,
+            value = searchQuery,
             onValueChange = { viewModel.updateSearchQuery(it) },
             placeholder = { Text(s.searchPlaceholder, color = Grey, fontSize = 15.sp) },
             modifier = Modifier.width(240.dp).height(56.dp), // Redus la 240dp pentru a garanta spațiul pe 55"
@@ -970,11 +998,11 @@ private fun HomeHeader(
             keyboardActions = androidx.compose.foundation.text.KeyboardActions(
                 onSearch = {
                     viewModel.searchMovies(
-                        uiState.searchQuery,
-                        uiState.selectedGenre,
-                        uiState.selectedYear,
-                        uiState.selectedQuality,
-                        uiState.selectedRating
+                        searchQuery,
+                        selectedGenre,
+                        selectedYear,
+                        selectedQuality,
+                        selectedRating
                     )
                 }
             ),

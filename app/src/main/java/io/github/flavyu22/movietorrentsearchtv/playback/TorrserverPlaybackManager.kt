@@ -5,9 +5,9 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.core.net.toUri
 import io.github.flavyu22.movietorrentsearchtv.model.AppStrings
 import io.github.flavyu22.movietorrentsearchtv.config.ExternalPackages
 import io.github.flavyu22.movietorrentsearchtv.repository.TorrserverEndpoint
@@ -307,7 +307,7 @@ object PlaybackIntentHelper {
         for (pkg in packages) {
             try {
                 val intent = if (magnetUrl != null) {
-                    Intent(Intent.ACTION_VIEW, Uri.parse(magnetUrl)).apply {
+                    Intent(Intent.ACTION_VIEW, magnetUrl.toUri()).apply {
                         setPackage(pkg)
                     }
                 } else {
@@ -328,7 +328,7 @@ object PlaybackIntentHelper {
     /** Uses the previously selected player, or remembers the first choice from the system chooser. */
     fun playStream(context: Context, streamUrl: String, title: String, strings: AppStrings) {
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(Uri.parse(streamUrl), "video/*")
+            setDataAndType(streamUrl.toUri(), "video/*")
             addCategory(Intent.CATEGORY_DEFAULT)
             putExtra("title", title)
             putExtra("name", title)
@@ -351,7 +351,7 @@ object PlaybackIntentHelper {
         strings: AppStrings,
     ) {
         try {
-            val uri    = Uri.parse(url)
+            val uri    = url.toUri()
             val intent = Intent(Intent.ACTION_VIEW).apply {
                 if (isMagnet) data = uri
                 else {

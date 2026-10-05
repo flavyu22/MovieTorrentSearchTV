@@ -1,8 +1,10 @@
 package io.github.flavyu22.movietorrentsearchtv.viewmodel
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.SystemClock
+import androidx.core.content.edit
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -38,6 +40,10 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+// The injected context is always the Application instance (see AppViewModelFactory), never
+// an Activity or a View, so this cannot leak an Activity. StaticFieldLeak is suppressed
+// because the field is scoped to the ViewModel's own lifetime either way.
+@SuppressLint("StaticFieldLeak")
 class AppViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val authPreferences: SharedPreferences,
@@ -97,7 +103,7 @@ class AppViewModel(
         // Remove the older unsafe persistent session key written by versions <= 1.9.2.
         // The current LOGGED_IN_SESSION_KEY is left intact and restored above so a cold
         // start does not re-lock the profile; it is cleared when the user logs out.
-        appPreferences.edit().remove(LEGACY_LOGGED_IN_KEY).apply()
+        appPreferences.edit { remove(LEGACY_LOGGED_IN_KEY) }
         resumeLockoutTickerIfNeeded()
         checkForUpdates()
     }
@@ -176,9 +182,7 @@ class AppViewModel(
                     _isLoggedIn.value = true
                     // Persist the authenticated session so a cold-start restart does not
                     // ask for the credential again. Only a manual logout clears it.
-                    appPreferences.edit()
-                        .putBoolean(LOGGED_IN_SESSION_KEY, true)
-                        .apply()
+                    appPreferences.edit { putBoolean(LOGGED_IN_SESSION_KEY, true) }
                     sessionLockPolicy.clear()
                     _authState.value = AuthState.Idle
                 }
@@ -234,14 +238,14 @@ class AppViewModel(
         if (!Translations.containsKey(code)) return
         _languageCode.value = code
         savedStateHandle[LANGUAGE_KEY] = code
-        appPreferences.edit().putString(LANGUAGE_KEY, code).apply()
+        appPreferences.edit { putString(LANGUAGE_KEY, code) }
     }
 
     fun saveTmdbApiKey(key: String) {
         val trimmed = key.trim()
         if (trimmed.length > 128) return
         _tmdbApiKey.value = trimmed
-        appPreferences.edit().putString(TMDB_API_KEY_KEY, trimmed).apply()
+        appPreferences.edit { putString(TMDB_API_KEY_KEY, trimmed) }
     }
 
     fun dismissUpdate() {
@@ -455,7 +459,7 @@ class AppViewModel(
 
     /** Removes the persisted session so the next cold start re-locks the profile. */
     private fun clearPersistedSession() {
-        appPreferences.edit().remove(LOGGED_IN_SESSION_KEY).apply()
+        appPreferences.edit { remove(LOGGED_IN_SESSION_KEY) }
     }
 
     private fun resumeLockoutTickerIfNeeded() {

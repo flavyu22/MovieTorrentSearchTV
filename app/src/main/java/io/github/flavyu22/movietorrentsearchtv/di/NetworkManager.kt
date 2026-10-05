@@ -29,6 +29,8 @@ object NetworkManager {
     private const val READ_TIMEOUT_SECONDS = 40
     private const val WRITE_TIMEOUT_SECONDS = 40
     private const val CALL_TIMEOUT_SECONDS = 45
+    /** Bounds the host-policy memo tables; the real host set is far smaller than this. */
+    private const val MAX_HOST_POLICY_CACHE = 512
 
     fun getOkHttpClient(context: Context): OkHttpClient {
         return client ?: synchronized(this) {
@@ -111,12 +113,25 @@ object NetworkManager {
      * Loopback never leaves the device, so an on-device TorrServer stays reachable in
      * every build. Broader private ranges additionally require the direct distribution
      * capability flag. Public hosts are never eligible for cleartext.
+     *
+     * Results are memoized per host: the transport policy runs on every application
+     * interceptor invocation *and* on every network hop of every redirect chain, and the
+     * previous implementation re-lowercased the host, re-ran the IPv4 split and, for IPv6
+     * literals, performed a full `InetAddress.getByName` each time. The set of hosts an
+     * app talks to is small and bounded, so a small cache removes essentially all of that
+     * repeated parsing without changing the decision.
      */
     internal fun isCleartextHostPermitted(host: String): Boolean {
         val normalized = host.lowercase(Locale.ROOT).removeSuffix(".")
-        if (isLoopbackHost(normalized)) return true
-        return BuildConfig.ALLOW_LAN_CLEARTEXT && isPrivateNetworkHost(normalized)
+        cleartextHostCache[normalized]?.let { return it }
+        val permitted = if (isLoopbackHost(normalized)) true
+        else BuildConfig.ALLOW_LAN_CLEARTEXT && isPrivateNetworkHost(normalized)
+        if (cleartextHostCache.size >= MAX_HOST_POLICY_CACHE) cleartextHostCache.clear()
+        cleartextHostCache[normalized] = permitted
+        return permitted
     }
+
+    private val cleartextHostCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
     private fun isLoopbackHost(normalizedHost: String): Boolean {
         if (normalizedHost == "localhost") return true
@@ -125,6 +140,21 @@ object NetworkManager {
         // the only representation a parsed HttpUrl produces for ::1.
         return normalizedHost == "::1"
     }
+
+    /**
+     * Same memoization rationale as [isCleartextHostPermitted] for the image-host
+     * classification that selects the `Accept` header on every poster request.
+     */
+    private fun isCatalogueImageHost(host: String): Boolean {
+        val normalized = host.lowercase(Locale.ROOT).removeSuffix(".")
+        imageHostCache[normalized]?.let { return it }
+        val isImageHost = matchesHostSuffix(normalized, RemoteHosts.catalogueImageHostSuffixes)
+        if (imageHostCache.size >= MAX_HOST_POLICY_CACHE) imageHostCache.clear()
+        imageHostCache[normalized] = isImageHost
+        return isImageHost
+    }
+
+    private val imageHostCache = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
     private fun limitResponse(response: Response): Response {
         val body = response.body
@@ -166,10 +196,6 @@ object NetworkManager {
         override fun contentLength(): Long = delegate.contentLength()
 
         override fun source(): BufferedSource = limitedSource
-    }
-
-    private fun isCatalogueImageHost(host: String): Boolean {
-        return matchesHostSuffix(host, RemoteHosts.catalogueImageHostSuffixes)
     }
 
     private fun matchesHostSuffix(host: String, suffixes: Set<String>): Boolean {

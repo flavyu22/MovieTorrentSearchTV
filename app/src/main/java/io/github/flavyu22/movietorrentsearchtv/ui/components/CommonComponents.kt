@@ -101,10 +101,10 @@ internal fun preferredPosterUrl(vararg candidates: String?): String? =
 @Composable
 fun NetflixHeaderButton(
     text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     active: Boolean = false,
     icon: ImageVector? = null,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
@@ -227,7 +227,8 @@ fun MoviePosterCard(
     title: String?,
     imageRequest: ImageRequest,
     isFocused: Boolean,
-    scale: () -> Float,
+    modifier: Modifier = Modifier,
+    scale: Float = 1f,
     isSeries: Boolean = false,
     label: String = "",
     year: String? = null,
@@ -236,7 +237,6 @@ fun MoviePosterCard(
     fallbackTitle: String = "Movie",
     interactionSource: MutableInteractionSource,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     var imageLoadingError by remember(imageRequest) { mutableStateOf(false) }
     val hasPoster = remember(imageRequest) {
@@ -292,9 +292,8 @@ fun MoviePosterCard(
             // FOCUS SIMPLU: doar border alb (fără glow dublu — mai rapid pe TV-uri
             // slabe). Borderul este desenat de Surface, deci un singur draw pass.
             .graphicsLayer {
-                val s = scale()
-                scaleX = s
-                scaleY = s
+                scaleX = scale
+                scaleY = scale
                 clip = true
                 shape = MoviePosterShape
             },
@@ -482,9 +481,9 @@ fun TorrserverProcessingBanner(message: String, modifier: Modifier = Modifier) {
 @Composable
 fun NetflixPaginationButton(
     text: String,
-    enabled: Boolean = true,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    onClick: () -> Unit
+    enabled: Boolean = true
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
@@ -528,50 +527,6 @@ fun NetflixDialogButton(
     }
 }
 
-// ─── Source Loading Chip (MovieDetails) ─────────────────────────────────────
-@Composable
-fun SourceLoadingChip(sourceName: String, resultCount: Int) {
-    Surface(
-        modifier = Modifier.semantics {
-            liveRegion = LiveRegionMode.Polite
-            if (resultCount == 0) {
-                progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate
-            }
-            contentDescription = "$sourceName: $resultCount"
-        },
-        color = Color(0xFF333333),
-        shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, SoftBlue.copy(alpha = 0.3f))
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (resultCount == 0) {
-                CircularProgressIndicator(
-                    color = SoftBlue,
-                    modifier = Modifier.size(14.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Text(
-                    text = resultCount.toString(),
-                    color = SoftBlue,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = sourceName,
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
 // ─── Quality Badge (MovieDetails) ───────────────────────────────────────────
 @Composable
 fun QualityBadge(quality: String, isFocused: Boolean) {
@@ -582,6 +537,9 @@ fun QualityBadge(quality: String, isFocused: Boolean) {
         else -> Color.Gray
     }
     
+    // Compact by design: the badge sits in the torrent row's meta line, so its line box is
+    // pinned to 11sp. Without it the badge inherits the theme's 24sp line height and alone
+    // inflates every row to 57dp, which is what kept the 6th magnet link off-screen.
     Surface(
         color = if (isFocused) Color.White else color.copy(alpha = 0.2f),
         shape = RoundedCornerShape(4.dp),
@@ -591,8 +549,9 @@ fun QualityBadge(quality: String, isFocused: Boolean) {
             text = quality.uppercase(),
             color = if (isFocused) Color.Black else color,
             fontSize = 10.sp,
+            lineHeight = 11.sp,
             fontWeight = FontWeight.Black,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
         )
     }
 }
@@ -602,9 +561,9 @@ fun FocusableIconButton(
     icon: ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     tintNormal: Color = Color.White,
-    tintFocused: Color = Color.Black,
-    modifier: Modifier = Modifier
+    tintFocused: Color = Color.Black
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
