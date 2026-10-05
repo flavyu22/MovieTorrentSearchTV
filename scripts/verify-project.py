@@ -342,8 +342,17 @@ elif png_dimensions(banner) != (320, 180):
 # committed manifest against it so the mismatch is caught before publishing rather than
 # on a user's device.
 manifest = ROOT / "update.json"
-staged_manifest = ROOT.parent / "github-release-v2.1.0" / "update.json"
-staged_apk = ROOT.parent / "github-release-v2.1.0" / "app-direct-release.apk"
+# Staged release directories are named after the version they stage
+# ("github-release-v2.1.0", "github-release-v2.1.1", ...). Glob for them so this
+# guard keeps protecting every future release instead of silently skipping once
+# the version is bumped past the hardcoded directory.
+staged_dirs = sorted(ROOT.parent.glob("github-release-v*"))
+staged_dir = staged_dirs[-1] if staged_dirs else None
+if staged_dir is not None:
+    staged_manifest = staged_dir / "update.json"
+    staged_apk = staged_dir / "app-direct-release.apk"
+else:
+    staged_manifest = staged_apk = None
 if not manifest.is_file():
     fail("update.json must be published at the repository root for the in-app updater")
 else:
