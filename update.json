@@ -1,8 +1,8 @@
 {
-                  "versionCode": 10,
-                  "versionName": "2.1.0",
-                  "apkUrl": "https://github.com/flavyu22/MovieTorrentSearchTV/releases/download/v2.1.0/app-direct-release.apk",
-                  "sha256": "dd77ec154b9793970f7315e29fd66f2958e5f8716a4891450923a0378d76502b",
+                  "versionCode": 11,
+                  "versionName": "2.1.1",
+                  "apkUrl": "https://github.com/flavyu22/MovieTorrentSearchTV/releases/download/v2.1.1/app-direct-release.apk",
+                  "sha256": "8f3e80c80ee14e628d81f479b8549603dba66f9c042aac6f01115d1592bf3e53",
                   "sizeBytes": 2149842,
                   "releaseNotes": "See the GitHub release notes."
                 }
