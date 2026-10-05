@@ -46,8 +46,8 @@ val releaseSigningConfigured = listOf(
     releaseKeyPassword,
 ).all { !it.isNullOrBlank() }
 
-val appVersionName = "2.1.0"
-val appVersionCode = 10
+val appVersionName = "2.1.1"
+val appVersionCode = 11
 
 fun isValidUpdateManifestUrl(value: String): Boolean {
     if (value.length !in 1..2_048 || value.any { it.isWhitespace() || it.isISOControl() }) {

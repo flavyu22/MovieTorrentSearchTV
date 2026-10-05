@@ -301,6 +301,11 @@ class AppViewModel(
         _playbackState.value = PlaybackState.Foregrounded
         backgroundLockJob?.cancel()
         backgroundLockJob = null
+        // A single check at construction time is not enough: the manifest may have been
+        // unreachable then (offline start, DNS failure), and the user may have dismissed
+        // the dialog. Retrying on every foreground means a release published while the
+        // app was closed or running in the background is still picked up.
+        checkForUpdates()
         // Returning to the app (the external movie ended or the user came back) cancels
         // the two-minute playback auto-exit and is not a lock event: the profile stays
         // unlocked and the app does not terminate while the user is in it.
@@ -388,12 +393,19 @@ class AppViewModel(
     }
 
     @Synchronized
-    private fun checkForUpdates() {
+    fun checkForUpdates() {
         if (!BuildConfig.ENABLE_SELF_UPDATE) {
             _updateState.value = UpdateState.UpToDate
             return
         }
-        if (updateCheckJob?.isActive == true || _updateState.value != UpdateState.Idle) return
+        if (updateCheckJob?.isActive == true) return
+        // Re-checkable unless a check is already running or an update is being downloaded.
+        // A previous Error (transient network) or Dismissed must not permanently block
+        // future checks, otherwise one failed check disables updates for the whole
+        // process lifetime.
+        if (_updateState.value is UpdateState.Downloading ||
+            _updateState.value is UpdateState.Available
+        ) return
         val configuredUrl = io.github.flavyu22.movietorrentsearchtv.BuildConfig.UPDATE_MANIFEST_URL
         if (configuredUrl.isEmpty()) {
             _updateState.value = UpdateState.UpToDate

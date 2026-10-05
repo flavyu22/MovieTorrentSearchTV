@@ -153,7 +153,7 @@ if '<base-config cleartextTrafficPermitted="true">' not in direct_network:
 
 app_build = read(ROOT / "app/build.gradle.kts")
 for token in (
-    'val appVersionName = "2.1.0"',
+    'val appVersionName = "2.1.1"',
     'create("play")',
     'create("direct")',
     'buildConfigField("boolean", "ENABLE_SELF_UPDATE", "false")',
