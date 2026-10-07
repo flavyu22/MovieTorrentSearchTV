@@ -1,5 +1,36 @@
 # Changelog
 
+## 2.1.1 — 2026-10-05 (versionCode 11)
+
+### Fixed
+
+- **The in-app updater now actually reaches installed users.** Three separate defects
+  broke the Direct-flavour update path end to end:
+  - `checkForUpdates()` was called only once from `init` and its guard
+    (`_updateState.value != UpdateState.Idle`) made every later call a no-op, so a
+    single transient network failure or a dismissed dialog disabled update checks for
+    the whole process lifetime. The guard now only blocks while a check is already
+    running or an update is downloading, and `onAppForegrounded()` re-checks so a
+    release published while the app was closed or backgrounded is still picked up.
+  - The published `update.json` advertised `versionCode` 10 — identical to the build
+    being shipped — so `updateInfo.versionCode > Constants.BUILD_NUMBER` was false and
+    every install was told "UpToDate". The version is bumped to 2.1.1 / 11 so users on
+    2.1.0 receive a real "Update available" prompt.
+  - The committed manifest carried the SHA-256 of a superseded build
+    (`8c7eed3c…`) while the release asset hashed to `dd77ec15…`;
+    `UpdateInstaller` compares the digest with `MessageDigest.isEqual`, so the
+    downloaded APK was discarded as an integrity failure. The manifest now carries the
+    digest and byte length of the APK the release actually serves.
+- `scripts/verify-project.py` locates the staged release directory by globbing
+  `github-release-v*` instead of hardcoding `github-release-v2.1.0`, so the
+  manifest-versus-asset cross-check keeps protecting every future release rather than
+  silently reverting to a no-op after the next version bump.
+
+### Changed
+
+- The About dialog credits **OxigenForFlowers by B.P** in all nine supported locales
+  (RO, EN, IT, ES, FR, DE, PT, RU, EL).
+
 ## Unreleased — 2026-10-04
 
 ### Changed
